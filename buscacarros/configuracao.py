@@ -2,7 +2,6 @@
 import configparser
 import json
 import os
-import re
 import shutil
 import uuid
 from datetime import datetime
@@ -38,6 +37,8 @@ def garantir_config():
     exemplo = RAIZ / 'config.exemplo.ini'
     if not alvo.exists() and exemplo.exists():
         shutil.copyfile(exemplo, alvo)
+    if alvo.exists():
+        _remover_secao_email(alvo)
     return alvo
 
 
@@ -68,12 +69,6 @@ def ler_config(caminho=None):
         return padrao if v is None else v
 
     return {
-        'email': {
-            'ativo': b('email', 'ativo', False),
-            'remetente': g('email', 'remetente'),
-            'senha_app': g('email', 'senha_app').replace(' ', ''),
-            'destinatarios': [x.strip() for x in g('email', 'destinatarios').replace(';', ',').split(',') if x.strip()],
-        },
         'execucao': {
             'intervalo_dias': inteiro(g('execucao', 'intervalo_dias', '2')) or 2,
             'mostrar_navegador': b('execucao', 'mostrar_navegador', False),
@@ -99,53 +94,30 @@ def _ler_texto_config(caminho):
     return b.decode('utf-8', errors='replace')
 
 
-def salvar_email(ativo, remetente, senha_app, destinatarios):
-    """Grava a seção [email] do config.ini sem mexer no resto (comentários incluídos).
-    senha_app=None mantém a senha atual."""
-    remetente = (remetente or '').strip()
-    dest = [x.strip() for x in str(destinatarios or '').replace(';', ',').split(',') if x.strip()]
-    email_ok = lambda e: bool(re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', e))  # noqa: E731
-    if remetente and not email_ok(remetente):
-        raise ErroConfig('O e-mail que envia não parece válido.')
-    for d in dest:
-        if not email_ok(d):
-            raise ErroConfig(f'O destinatário "{d}" não parece um e-mail válido.')
-    if senha_app is not None:
-        senha_app = re.sub(r'\s', '', senha_app)
-        if senha_app and not re.fullmatch(r'[A-Za-z]{16}', senha_app):
-            raise ErroConfig('A senha de app do Gmail tem 16 letras (ex.: abcd efgh ijkl mnop).')
-    if ativo and not (remetente and dest and (senha_app or (senha_app is None and ler_config()['email']['senha_app']))):
-        raise ErroConfig('Para enviar e-mail, preencha o Gmail que envia, a senha de app e quem recebe.')
-
-    caminho = garantir_config()
-    texto = _ler_texto_config(caminho)
-    nl = '\r\n' if '\r\n' in texto else '\n'
+def _remover_secao_email(caminho):
+    """O envio de e-mail saiu do programa (1.3.1): tira a seção [email] do config.ini, para não deixar
+    guardada uma senha de app do Gmail que não é mais usada. O resto do arquivo fica como está."""
+    try:
+        texto = _ler_texto_config(caminho)
+    except OSError:
+        return
     linhas = texto.splitlines()
-    valores = {'ativo': 'sim' if ativo else 'nao', 'remetente': remetente, 'destinatarios': ', '.join(dest)}
-    if senha_app is not None:
-        valores['senha_app'] = senha_app
     ini = next((i for i, l in enumerate(linhas) if l.strip().lower() == '[email]'), None)
     if ini is None:
-        linhas = ['[email]'] + [f'{k} = {v}' for k, v in valores.items()] + [''] + linhas
-    else:
-        fim = next((i for i in range(ini + 1, len(linhas)) if linhas[i].strip().startswith('[')), len(linhas))
-        pendentes = dict(valores)
-        for i in range(ini + 1, fim):
-            m = re.match(r'\s*([A-Za-z_]+)\s*=', linhas[i])
-            if m and m.group(1).lower() in pendentes:
-                k = m.group(1).lower()
-                linhas[i] = f'{k} = {pendentes.pop(k)}'
-        if pendentes:
-            linhas[ini + 1:ini + 1] = [f'{k} = {v}' for k, v in pendentes.items()]
-    caminho.write_text(nl.join(linhas) + nl, encoding='utf-8', newline='')
-    return ler_email()
-
-
-def ler_email():
-    e = ler_config()['email']
-    return {'ativo': e['ativo'], 'remetente': e['remetente'], 'destinatarios': ', '.join(e['destinatarios']),
-            'tem_senha': bool(e['senha_app']),
-            'configurado': bool(e['remetente'] and e['senha_app'] and e['destinatarios'])}
+        return
+    # o comentário do cabeçalho que mandava configurar o e-mail pelo painel vira o texto novo
+    linhas = ['; O carro buscado se escolhe pelo painel; o resto pode ser ajustado aqui.'
+              if l.strip().startswith(';') and 'E-mail do resultado' in l else l for l in linhas]
+    fim = next((i for i in range(ini + 1, len(linhas)) if linhas[i].strip().startswith('[')), len(linhas))
+    # leva junto os comentários logo acima da seção que falam de e-mail
+    while ini > 0 and linhas[ini - 1].strip().startswith(';') and 'mail' in linhas[ini - 1].lower():
+        ini -= 1
+    novas = linhas[:ini] + linhas[fim:]
+    nl = '\r\n' if '\r\n' in texto else '\n'
+    try:
+        caminho.write_text(nl.join(novas).rstrip() + nl, encoding='utf-8', newline='')
+    except OSError:
+        pass
 
 
 # --------------------------------------------------------------------------- lista de buscas

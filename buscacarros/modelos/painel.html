@@ -35,7 +35,6 @@ header.topo .titulo { margin-right: auto; }
 h1 { font: 700 2.1rem/1.1 "Barlow Semi Condensed", Barlow, sans-serif; margin: 0 0 6px; }
 .resumo-topo { margin: 0; color: var(--texto-2); }
 .resumo-topo b { color: var(--texto); font-weight: 600; }
-.aviso-email { margin: 6px 0 0; font-size: 0.92rem; color: var(--aviso); }
 .versao-topo { margin: 4px 0 0; font-size: 0.85rem; color: var(--texto-2); }
 .faixa-atualizacao { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 16px 0 0; padding: 10px 14px; border-radius: var(--raio); background: var(--placa-claro); border-left: 3px solid var(--placa); }
 .faixa-atualizacao.aviso { background: var(--aviso-claro); border-left-color: var(--aviso); }
@@ -70,17 +69,11 @@ h2 { font: 600 1.35rem/1.2 "Barlow Semi Condensed", Barlow, sans-serif; margin: 
 .nota-troca { margin: -4px 0 14px; font-size: 0.95rem; color: var(--texto-2); }
 .nota-troca b { color: var(--texto); font-weight: 600; }
 
-/* E-mail */
-section.email { margin-top: 32px; }
-.email-resumo { margin: 0; padding: 14px 0; border-top: 1px solid var(--linha); border-bottom: 1px solid var(--linha); color: var(--texto-2); }
-.email-resumo b { color: var(--texto); font-weight: 600; }
-form#form-email { background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--raio); padding: 18px; }
-.ajuda { margin: 2px 0 0; font-size: 0.85rem; color: var(--texto-2); }
 .msg-form.ok { background: var(--ok-claro); color: var(--ok); }
 
 /* Formulário */
-form#nova, form#form-email { background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--raio); padding: 18px; margin-bottom: 18px; }
-form#nova h3, form#form-email h3 { font: 600 1.1rem "Barlow Semi Condensed", Barlow, sans-serif; margin: 0 0 12px; }
+form#nova { background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--raio); padding: 18px; margin-bottom: 18px; }
+form#nova h3 { font: 600 1.1rem "Barlow Semi Condensed", Barlow, sans-serif; margin: 0 0 12px; }
 .campos { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
 .campo { display: flex; flex-direction: column; gap: 3px; font-size: 0.88rem; color: var(--texto-2); }
 .campo.c2 { grid-column: span 2; } .campo.c3 { grid-column: span 3; } .campo.c6 { grid-column: span 6; }
@@ -159,7 +152,6 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
     <div class="titulo">
       <h1>Busca Carro</h1>
       <p class="resumo-topo" id="resumo-topo">Carregando…</p>
-      <p class="aviso-email" id="aviso-email" hidden></p>
       <p class="versao-topo" id="versao-topo"></p>
     </div>
     <button class="secundario" id="abrir-relatorio" hidden>Abrir último relatório</button>
@@ -247,40 +239,6 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
       </div>
     </section>
 
-    <section class="email" aria-labelledby="t-email">
-      <div class="cabeca">
-        <h2 id="t-email">E-mail do resultado</h2>
-        <button class="secundario" id="editar-email">Configurar</button>
-      </div>
-      <p class="email-resumo" id="email-resumo"></p>
-      <form id="form-email" hidden novalidate>
-        <div class="campos">
-          <fieldset class="escolha campo c6">
-            <legend>Enviar o resultado de cada busca por e-mail</legend>
-            <div class="botoes-escolha">
-              <label><input type="radio" name="e-ativo" value="sim"> Sim</label>
-              <label><input type="radio" name="e-ativo" value="nao"> Não</label>
-            </div>
-          </fieldset>
-          <label class="campo c6">Gmail que envia
-            <input id="e-remetente" type="email" autocomplete="email" placeholder="seu.email@gmail.com">
-          </label>
-          <label class="campo c6">Senha de app do Gmail
-            <input id="e-senha" type="password" autocomplete="new-password" placeholder="16 letras">
-            <span class="ajuda">Não é a senha normal. Crie em <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a> (a conta precisa da verificação em duas etapas).</span>
-          </label>
-          <label class="campo c6">Quem recebe
-            <input id="e-dest" autocomplete="off" placeholder="um ou mais e-mails, separados por vírgula">
-          </label>
-        </div>
-        <p class="msg-form" id="msg-email" hidden></p>
-        <div class="form-acoes">
-          <button type="submit" class="primario" id="salvar-email">Salvar</button>
-          <button type="button" class="secundario" id="testar-email">Salvar e enviar teste</button>
-          <button type="button" class="discreto" id="cancelar-email">Cancelar</button>
-        </div>
-      </form>
-    </section>
     </div>
 
     <section class="rodada" aria-labelledby="t-rodada">
@@ -342,10 +300,6 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
     if (estado.proxima) t += ' Próxima busca automática a partir de <b>' + esc(estado.proxima) + '</b>.';
     else t += ' A busca automática roda a cada ' + estado.intervalo_dias + ' dias, quando o computador liga.';
     $('resumo-topo').innerHTML = t;
-    const e = estado.email;
-    const av = $('aviso-email');
-    if (e.ativo && !e.configurado) { av.hidden = false; av.textContent = 'O e-mail ainda não foi configurado. Configure em "E-mail do resultado" para receber os carros por e-mail.'; }
-    else av.hidden = true;
     $('abrir-relatorio').hidden = !estado.tem_relatorio;
     renderVersao();
   }
@@ -366,7 +320,7 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
       html = '<p><b>Versão ' + esc(a.versao_ativa) + ' instalada.</b> As próximas buscas já usam a versão nova; feche e abra o painel para ver as mudanças aqui.' + notas(a.notas_instalada) + '</p>';
     } else if (a.situacao === 'precisa_instalador' && a.url_instalador) {
       cls = 'aviso';
-      html = '<p><b>Há uma versão nova (' + esc(a.ultima_versao) + ') que precisa do instalador completo.</b> Baixe e rode o instalador; o carro buscado e o e-mail continuam configurados.' + notas(a.notas) + '</p>' +
+      html = '<p><b>Há uma versão nova (' + esc(a.ultima_versao) + ') que precisa do instalador completo.</b> Baixe e rode o instalador; o carro buscado continua configurado.' + notas(a.notas) + '</p>' +
         '<a class="secundario botao-link" href="' + esc(a.url_instalador) + '" target="_blank" rel="noopener">Baixar o instalador</a>';
     } else if (a.instalada === emUso && a.instalada_em && Date.now() / 1000 - a.instalada_em < 3 * 86400 && guardado('bc-visto') !== emUso) {
       html = '<p><b>Atualizado para a versão ' + esc(emUso) + '.</b>' + notas(a.notas_instalada) + '</p><button class="secundario" id="visto-versao">Ok</button>';
@@ -461,49 +415,6 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
   $('nova').addEventListener('submit', (e) => { e.preventDefault(); salvar(false); });
   $('forcar').addEventListener('click', () => salvar(true));
 
-  // ------------------------------------------------------------------ e-mail
-  function renderEmail() {
-    const e = estado.email;
-    let t;
-    if (!e.configurado) t = 'Ainda não configurado. Sem isso, os resultados ficam só aqui no painel.';
-    else if (!e.ativo) t = 'Desligado. Os resultados ficam só aqui no painel.';
-    else t = 'Enviando para <b>' + esc(e.destinatarios) + '</b> a partir de ' + esc(e.remetente) + '.';
-    $('email-resumo').innerHTML = t;
-  }
-  function msgEmail(texto, tipo) { const m = $('msg-email'); m.hidden = !texto; m.textContent = texto || ''; m.className = 'msg-form ' + (tipo || 'erro'); }
-  function abrirEmail(abrir) {
-    $('form-email').hidden = !abrir; $('editar-email').hidden = abrir; $('email-resumo').hidden = abrir; msgEmail(null);
-    if (abrir) {
-      const e = estado.email;
-      document.querySelector('input[name="e-ativo"][value="' + (e.ativo || !e.configurado ? 'sim' : 'nao') + '"]').checked = true;
-      $('e-remetente').value = e.remetente || ''; $('e-dest').value = e.destinatarios || ''; $('e-senha').value = '';
-      $('e-senha').placeholder = e.tem_senha ? 'já configurada (deixe em branco para manter)' : '16 letras';
-      $('e-remetente').focus();
-    }
-  }
-  $('editar-email').addEventListener('click', () => abrirEmail(true));
-  $('cancelar-email').addEventListener('click', () => abrirEmail(false));
-  async function salvarEmail(testar) {
-    const ativo = (document.querySelector('input[name="e-ativo"]:checked') || {}).value === 'sim';
-    const bS = $('salvar-email'), bT = $('testar-email');
-    bS.disabled = bT.disabled = true; msgEmail(testar ? 'Salvando e enviando o teste…' : 'Salvando…', 'aviso');
-    const r = await api('POST', '/api/email', { ativo, remetente: $('e-remetente').value, senha_app: $('e-senha').value, destinatarios: $('e-dest').value });
-    if (!r.ok) { bS.disabled = bT.disabled = false; msgEmail(r.erro || 'Não foi possível salvar.'); return; }
-    estado.email = { ...estado.email, ...r.email }; $('e-senha').value = '';
-    $('e-senha').placeholder = r.email.tem_senha ? 'já configurada (deixe em branco para manter)' : '16 letras';
-    if (testar) {
-      const t = await api('POST', '/api/email/teste');
-      bS.disabled = bT.disabled = false;
-      msgEmail(t.msg || t.erro || 'Não foi possível enviar o teste.', t.ok ? 'ok' : 'erro');
-      renderEmail(); renderTopo();
-      return;
-    }
-    bS.disabled = bT.disabled = false;
-    abrirEmail(false); renderEmail(); renderTopo(); toast('Configuração de e-mail salva.');
-  }
-  $('form-email').addEventListener('submit', (ev) => { ev.preventDefault(); salvarEmail(false); });
-  $('testar-email').addEventListener('click', () => salvarEmail(true));
-
   // ------------------------------------------------------------------ rodada: botões
   function renderBotoes() {
     const rodando = !!(estado && estado.rodando);
@@ -543,7 +454,7 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
     add('navegador', 'Abrir o navegador automático', null);
     (ev.buscas || []).forEach((b) => (ev.sites || []).forEach((s) => add(b.id + ':' + s.chave, s.nome, b)));
     add('fipe', 'Comparar com a tabela FIPE', null);
-    add('relatorio', 'Gerar o relatório e enviar o e-mail', null);
+    add('relatorio', 'Gerar o relatório', null);
     $('log').innerHTML = '';
   }
   function hora(ts) { return new Date((ts) * 1000).toLocaleTimeString('pt-BR'); }
@@ -622,7 +533,7 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
       const dur = duracao(f.ts - prog.ts0);
       if (f.status === 'ok') {
         est.className = 'estado ok'; est.textContent = 'Busca concluída em ' + dur + '.';
-        sub.textContent = num.format(f.carros) + (f.carros === 1 ? ' carro encontrado' : ' carros encontrados') + ', ' + num.format(f.abaixo_fipe) + ' abaixo da FIPE. E-mail: ' + (f.email || '—') + '. Terminou às ' + hora(f.ts) + '.';
+        sub.textContent = num.format(f.carros) + (f.carros === 1 ? ' carro encontrado' : ' carros encontrados') + ', ' + num.format(f.abaixo_fipe) + ' abaixo da FIPE. Terminou às ' + hora(f.ts) + '.';
       } else if (f.status === 'interrompida') {
         est.className = 'estado aviso'; est.textContent = 'Busca interrompida.'; sub.textContent = 'Parada às ' + hora(f.ts) + ', depois de ' + dur + '. Nenhum relatório novo foi gerado.';
       } else {
@@ -631,7 +542,7 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
       $('ver-relatorio').hidden = !(f.status === 'ok' && estado && estado.tem_relatorio);
     } else if (rodando) {
       est.className = 'estado'; est.textContent = 'Buscando… ' + pct + '%';
-      sub.textContent = 'Rodando há ' + duracao(agora - prog.ts0) + ', ' + (ORIGEM[prog.inicio.origem] || '') + '. Pode fechar esta página: a busca continua e o relatório chega por e-mail.';
+      sub.textContent = 'Rodando há ' + duracao(agora - prog.ts0) + ', ' + (ORIGEM[prog.inicio.origem] || '') + '. Pode fechar esta página: a busca continua e o relatório fica pronto do mesmo jeito.';
       $('ver-relatorio').hidden = true;
     } else {
       est.className = 'estado erro'; est.textContent = 'A busca parou sem terminar.';
@@ -676,11 +587,10 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
       }
       if (esperandoInicio && Date.now() - esperandoInicio > 60000) esperandoInicio = 0;
       renderTopo(); renderBotoes(); renderProgresso();
-      if ($('form-email').hidden) renderEmail();
       renderLista();
     } catch (err) {
       $('estado').className = 'estado erro'; $('estado').textContent = 'O painel perdeu a conexão com o programa.';
-      $('sub-estado').textContent = 'Abra de novo pelo atalho "Busca de carros" na área de trabalho.';
+      $('sub-estado').textContent = 'Abra de novo pelo ícone "Busca Carro" na área de trabalho.';
     } finally {
       ocupado = false;
       const rapido = (estado && estado.rodando) || esperandoInicio;

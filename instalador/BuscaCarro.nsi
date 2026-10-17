@@ -88,7 +88,7 @@ Section "Instalar"
   RMDir /r "$INSTDIR\python"
   File /r "${PAYLOAD}\*.*"
 
-  ; quem já usava a versão manual (pasta "Busca Carros" na área de trabalho) leva o carro e o e-mail
+  ; quem já usava a versão manual (pasta "Busca Carros" na área de trabalho) leva o carro e as configurações
   ${IfNot} ${FileExists} "$INSTDIR\buscas.json"
     ${If} ${FileExists} "$DESKTOP\Busca Carros\buscas.json"
       CopyFiles /SILENT "$DESKTOP\Busca Carros\buscas.json" "$INSTDIR\buscas.json"

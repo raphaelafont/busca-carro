@@ -20,17 +20,6 @@ Pode fechar o painel a qualquer momento: a busca continua. O painel se encerra
 sozinho 10 minutos depois de fechado.
 
 
-Receber o resultado por e-mail
-------------------------------
-No painel, em "E-mail do resultado", clique em "Configurar":
-- Gmail que envia: uma conta Gmail.
-- Senha de app: não é a senha normal da conta. Crie em
-  https://myaccount.google.com/apppasswords (a conta precisa da verificação em
-  duas etapas ativada) e copie as 16 letras.
-- Quem recebe: um ou mais e-mails, separados por vírgula.
-Use "Salvar e enviar teste" para conferir.
-
-
 Busca automática
 ----------------
 A busca roda sozinha a cada 2 dias: ao entrar no Windows e numa checagem diária às

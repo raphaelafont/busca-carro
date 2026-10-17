@@ -1,4 +1,4 @@
-"""Painel no navegador: carro buscado, e-mail, botão de rodar e acompanhamento ao vivo.
+"""Painel no navegador: carro buscado, botão de rodar e acompanhamento ao vivo.
 
 Abre um servidor só no próprio computador (127.0.0.1) e o navegador padrão.
 O servidor se encerra sozinho 10 minutos depois que a página do painel é fechada.
@@ -19,9 +19,7 @@ from urllib.parse import parse_qs, urlparse
 import requests
 
 from . import __version__, agenda, atualizador, progresso
-from . import email_envio
-from .configuracao import (RAIZ, ErroConfig, definir_busca, excluir_busca, ler_config, ler_email, ler_lista,
-                           normalizar_busca, salvar_email)
+from .configuracao import RAIZ, ErroConfig, definir_busca, excluir_busca, ler_config, ler_lista, normalizar_busca
 from .fipe import Fipe
 
 DADOS = RAIZ / 'dados'
@@ -140,7 +138,6 @@ def estado_geral():
     if cfg:
         _, prox = agenda.deve_rodar(DADOS, cfg['execucao']['intervalo_dias'])
         proxima = prox.strftime('%d/%m/%Y') if prox else None
-    email = cfg['email'] if cfg else {}
     return {
         'buscas': ler_lista(),
         'rodando': rodada_atual(),
@@ -148,10 +145,6 @@ def estado_geral():
         'proxima': proxima,
         'intervalo_dias': cfg['execucao']['intervalo_dias'] if cfg else 2,
         'tem_relatorio': (RESULTADOS / 'ultimo_relatorio.html').exists(),
-        'email': {'ativo': bool(email.get('ativo')),
-                  'configurado': bool(email.get('remetente') and email.get('senha_app') and email.get('destinatarios')),
-                  'remetente': email.get('remetente', ''), 'destinatarios': ', '.join(email.get('destinatarios', [])),
-                  'tem_senha': bool(email.get('senha_app'))},
         'erro_inicio': erro_de_inicio(),
         'versao': __version__,
         'atualizacao': atualizador.estado(),
@@ -255,8 +248,6 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._json(200, {'modelos': sugestoes_modelos(marca) if marca else []})
             if url.path == '/api/marcas':
                 return self._json(200, {'marcas': MARCAS})
-            if url.path == '/api/email':
-                return self._json(200, {'email': ler_email()})
             if url.path == '/icone.ico':
                 return self._arquivo(RAIZ / 'icone.ico', 'image/x-icon')
             if url.path == '/relatorio':
@@ -284,15 +275,6 @@ class Manipulador(BaseHTTPRequestHandler):
                 nova, anterior = definir_busca(dados)
                 return self._json(200, {'busca': nova, 'anterior': anterior and anterior['titulo'],
                                         'buscas': ler_lista()})
-            if url.path == '/api/email':
-                d = self._corpo()
-                senha = d.get('senha_app')
-                email = salvar_email(bool(d.get('ativo')), d.get('remetente'), senha if senha else None,
-                                     d.get('destinatarios'))
-                return self._json(200, {'email': email})
-            if url.path == '/api/email/teste':
-                ok, msg = email_envio.enviar_teste(ler_config()['email'])
-                return self._json(200 if ok else 400, {'ok': ok, 'msg': msg})
             if url.path == '/api/rodar':
                 ok, msg = iniciar_rodada()
                 return self._json(200 if ok else 409, {'ok': ok, 'msg': msg})

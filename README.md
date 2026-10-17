@@ -1,8 +1,8 @@
 # Busca Carro
 
 Procura um carro usado na Webmotors, na OLX e no Mercado Livre, compara cada anúncio com a tabela FIPE e
-gera um relatório com filtros e ordenação (e um e-mail com os melhores abaixo da FIPE). Roda no Windows de
-cada pessoa, sozinho a cada 2 dias ou quando ela mandar pelo painel.
+gera um relatório com filtros e ordenação. Roda no Windows de cada pessoa, sozinho a cada 2 dias ou quando
+ela mandar pelo painel.
 
 **Baixar o instalador (sempre a versão mais recente):**
 https://github.com/raphaelafont/busca-carro/releases/latest/download/BuscaCarro-Instalador.exe
@@ -22,7 +22,7 @@ começa, ele confere se há versão nova aqui e, se houver, baixa, testa e passa
   separado antes de ativá-la; uma versão que não carrega não é tentada de novo.
 - `BASE` em `instalador/construir.py` só muda quando o Python ou as dependências mudam. Aí os PCs não
   se atualizam sozinhos: o painel avisa e mostra o link do instalador.
-- Dados de cada pessoa (`config.ini` com a senha de app do Gmail, `buscas.json`, `dados\`, `logs\`,
+- Dados de cada pessoa (`config.ini`, `buscas.json`, `dados\`, `logs\`,
   `resultados\`) ficam só no PC dela e nunca vêm para cá.
 
 ## Publicar uma versão nova
@@ -49,7 +49,7 @@ Assim os PCs nunca veem uma versão pela metade.
   - `sites/`: leitores de cada site (`sites/js/*.js` rodam dentro das páginas; `ritmo.js` controla o
     ritmo das consultas).
   - `memoria.py`: memória entre rodadas para consultar os sites o mínimo possível.
-  - `fipe.py`, `analise.py`, `relatorio.py`, `email_envio.py`.
+  - `fipe.py`, `analise.py`, `relatorio.py`.
   - `atualizador.py`: atualização automática.
 - `iniciar.py`: iniciador instalado na raiz da instalação.
 - `instalador/`: `construir.py` (monta o instalador NSIS no Linux), `BuscaCarro.nsi`, ícone e scripts

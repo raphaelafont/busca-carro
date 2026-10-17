@@ -1,0 +1,1 @@
+Sai o envio do resultado por e-mail, que não estava sendo usado: o painel fica só com o carro buscado e a busca. O relatório continua no botão "Abrir relatório". Se havia uma senha do Gmail salva, ela é apagada do config.ini.

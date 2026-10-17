@@ -1,4 +1,4 @@
-"""Rotina principal: coleta, trata, gera o relatório e envia o e-mail."""
+"""Rotina principal: coleta, trata e gera o relatório."""
 import argparse
 import json
 import logging
@@ -9,7 +9,7 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 
-from . import agenda, analise, email_envio, progresso, relatorio
+from . import agenda, analise, progresso, relatorio
 from .configuracao import RAIZ, ErroConfig, ler_buscas, ler_config
 from .fipe import Fipe, tokens
 from .memoria import CALMO_SE_USADO_HA_MIN, Memoria
@@ -209,20 +209,15 @@ def rodada(args, cfg, buscas):
     if fipe.indisponivel:
         log.warning('A API da FIPE não respondeu; usei a FIPE informada pelos sites quando havia.')
 
-    progresso.etapa('Gerando o relatório e enviando o e-mail', chave='relatorio')
+    progresso.etapa('Gerando o relatório', chave='relatorio')
     destino = RESULTADOS / f"relatorio_{datetime.now():%Y-%m-%d_%H%M}.html"
     relatorio.gerar(dados, destino)
     shutil.copyfile(destino, RESULTADOS / 'ultimo_relatorio.html')
     log.info('Relatório: %s (%d carros)', destino.name, len(carros))
 
-    email_msg = 'não enviado (--sem-email)'
-    if not args.sem_email:
-        ok, email_msg = email_envio.enviar(cfg['email'], dados, carros, destino)
-        (log.info if ok else log.warning)('E-mail: %s', email_msg)
-
     abaixo = sum(1 for c in carros if c.get('dif_pct') is not None and c['dif_pct'] < 0)
     algum_ok = any(s['status'] == 'ok' for s in dados['status'])
-    resumo = {'carros': len(carros), 'abaixo_fipe': abaixo, 'relatorio': destino.name, 'email': email_msg,
+    resumo = {'carros': len(carros), 'abaixo_fipe': abaixo, 'relatorio': destino.name,
               'duracao_s': round(time.time() - t0), 'origem': args.origem,
               'sites': {s['site']: {'status': s['status'], 'qtd': s['qtd']} for s in dados['status']}}
     if not args.reprocessar and algum_ok:
@@ -283,7 +278,7 @@ def executar(args):
 def main(argv=None):
     p = argparse.ArgumentParser(prog='buscacarros', description='Busca carros usados e compara com a FIPE.')
     p.add_argument('--forcar', action='store_true', help='roda agora, mesmo que a última rodada tenha sido há menos de 2 dias')
-    p.add_argument('--sem-email', action='store_true', help='não envia o e-mail')
+    p.add_argument('--sem-email', action='store_true', help=argparse.SUPPRESS)  # aceito por compatibilidade; não há mais e-mail
     p.add_argument('--abrir', action='store_true', help='abre o relatório no navegador ao terminar')
     p.add_argument('--mostrar-navegador', action='store_true', help='mostra a janela do navegador durante a coleta')
     p.add_argument('--origem', default='automatica', choices=('automatica', 'painel', 'manual'),
