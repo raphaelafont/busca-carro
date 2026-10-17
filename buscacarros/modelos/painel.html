@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Busca Carro</title>
+<link rel="icon" href="/icone.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --fundo: #F3F5F6; --superficie: #FFFFFF; --texto: #1F2A30; --texto-2: #56636B; --linha: #DCE2E5;
+  --placa: #1450A3; --placa-forte: #0F3F82; --placa-claro: #E6EEF9;
+  --ok: #1F7A52; --ok-claro: #E3F2EA; --aviso: #A65F0C; --aviso-claro: #FAEEDD; --erro: #B3261E; --erro-claro: #FBE9E7;
+  --raio: 6px; color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --fundo: #12181C; --superficie: #1A2228; --texto: #E6ECEF; --texto-2: #9AA8B0; --linha: #2A353C;
+    --placa: #7FAEF2; --placa-forte: #A9C8F6; --placa-claro: #1D2C40;
+    --ok: #5CC596; --ok-claro: #173126; --aviso: #E6A65A; --aviso-claro: #3A2A16; --erro: #F08A80; --erro-claro: #3A1C1A;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--fundo); color: var(--texto); font: 400 16px/1.5 Barlow, "Segoe UI", system-ui, sans-serif; font-feature-settings: "tnum" 1; }
+:focus-visible { outline: 2px solid var(--placa); outline-offset: 2px; }
+a { color: var(--placa); }
+.pagina { max-width: 1240px; margin: 0 auto; padding: 0 20px 48px; }
+
+header.topo { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 24px; padding: 28px 0 18px; border-bottom: 1px solid var(--linha); }
+header.topo .titulo { margin-right: auto; }
+h1 { font: 700 2.1rem/1.1 "Barlow Semi Condensed", Barlow, sans-serif; margin: 0 0 6px; }
+.resumo-topo { margin: 0; color: var(--texto-2); }
+.resumo-topo b { color: var(--texto); font-weight: 600; }
+.aviso-email { margin: 6px 0 0; font-size: 0.92rem; color: var(--aviso); }
+.versao-topo { margin: 4px 0 0; font-size: 0.85rem; color: var(--texto-2); }
+.faixa-atualizacao { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 16px 0 0; padding: 10px 14px; border-radius: var(--raio); background: var(--placa-claro); border-left: 3px solid var(--placa); }
+.faixa-atualizacao.aviso { background: var(--aviso-claro); border-left-color: var(--aviso); }
+.faixa-atualizacao p { margin: 0; flex: 1 1 280px; }
+.faixa-atualizacao .notas { display: block; color: var(--texto-2); font-size: 0.92rem; white-space: pre-line; }
+.faixa-atualizacao button { min-height: 32px; padding: 4px 12px; }
+.botao-link { display: inline-flex; align-items: center; min-height: 32px; padding: 4px 12px; border-radius: var(--raio); text-decoration: none; font-weight: 500; }
+
+button { font: 500 1rem Barlow, sans-serif; cursor: pointer; border-radius: var(--raio); min-height: 38px; padding: 6px 16px; }
+button:disabled { cursor: not-allowed; opacity: .55; }
+.primario { background: var(--placa); color: #fff; border: 1px solid var(--placa); }
+.primario:hover:not(:disabled) { background: var(--placa-forte); border-color: var(--placa-forte); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .primario { color: #0E1A2B; } }
+.secundario { background: var(--superficie); color: var(--placa); border: 1px solid var(--placa); }
+.discreto { background: none; border: 1px solid transparent; color: var(--texto-2); padding: 4px 10px; min-height: 32px; }
+.discreto:hover { color: var(--erro); border-color: var(--linha); }
+.perigo { background: var(--erro); color: #fff; border: 1px solid var(--erro); padding: 4px 10px; min-height: 32px; }
+.grande { font-size: 1.15rem; font-weight: 600; min-height: 48px; padding: 8px 28px; }
+
+main.grade { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 32px; padding-top: 24px; align-items: start; }
+h2 { font: 600 1.35rem/1.2 "Barlow Semi Condensed", Barlow, sans-serif; margin: 0; }
+.cabeca { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.cabeca .conta { color: var(--texto-2); font-weight: 400; }
+
+/* Carro buscado */
+.carro-atual { display: flex; align-items: center; gap: 12px; padding: 16px 0; border-top: 1px solid var(--linha); border-bottom: 1px solid var(--linha); }
+.carro-atual .info { flex: 1; min-width: 0; }
+.carro-atual .nome { font: 600 1.5rem/1.2 "Barlow Semi Condensed", Barlow, sans-serif; margin: 0; }
+.carro-atual .det { margin: 4px 0 0; color: var(--texto-2); font-size: 1rem; }
+.vazio { padding: 20px 0; color: var(--texto-2); border-top: 1px solid var(--linha); border-bottom: 1px solid var(--linha); }
+.vazio p { margin: 0; }
+.nota-troca { margin: -4px 0 14px; font-size: 0.95rem; color: var(--texto-2); }
+.nota-troca b { color: var(--texto); font-weight: 600; }
+
+/* E-mail */
+section.email { margin-top: 32px; }
+.email-resumo { margin: 0; padding: 14px 0; border-top: 1px solid var(--linha); border-bottom: 1px solid var(--linha); color: var(--texto-2); }
+.email-resumo b { color: var(--texto); font-weight: 600; }
+form#form-email { background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--raio); padding: 18px; }
+.ajuda { margin: 2px 0 0; font-size: 0.85rem; color: var(--texto-2); }
+.msg-form.ok { background: var(--ok-claro); color: var(--ok); }
+
+/* Formulário */
+form#nova, form#form-email { background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--raio); padding: 18px; margin-bottom: 18px; }
+form#nova h3, form#form-email h3 { font: 600 1.1rem "Barlow Semi Condensed", Barlow, sans-serif; margin: 0 0 12px; }
+.campos { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+.campo { display: flex; flex-direction: column; gap: 3px; font-size: 0.88rem; color: var(--texto-2); }
+.campo.c2 { grid-column: span 2; } .campo.c3 { grid-column: span 3; } .campo.c6 { grid-column: span 6; }
+.campo .opc { font-weight: 400; }
+input, select { font: inherit; font-size: 1rem; color: var(--texto); background: var(--fundo); border: 1px solid var(--linha); border-radius: var(--raio); padding: 6px 8px; min-height: 38px; width: 100%; }
+input:disabled { opacity: .5; }
+fieldset.escolha { border: 0; margin: 0; padding: 0; min-width: 0; }
+fieldset.escolha legend { font-size: 0.88rem; color: var(--texto-2); padding: 0; margin-bottom: 3px; }
+.botoes-escolha { display: flex; border: 1px solid var(--linha); border-radius: var(--raio); overflow: hidden; }
+.botoes-escolha label { flex: 1; text-align: center; font-size: 0.95rem; color: var(--texto); padding: 7px 6px; cursor: pointer; background: var(--fundo); border-left: 1px solid var(--linha); }
+.botoes-escolha label:first-child { border-left: 0; }
+.botoes-escolha input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.botoes-escolha label:has(input:checked) { background: var(--placa-claro); color: var(--placa); font-weight: 600; }
+.botoes-escolha label:has(input:focus-visible) { outline: 2px solid var(--placa); outline-offset: -2px; }
+.form-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
+.msg-form { margin: 12px 0 0; padding: 8px 10px; border-radius: 4px; font-size: 0.95rem; }
+.msg-form.erro { background: var(--erro-claro); color: var(--erro); }
+.msg-form.aviso { background: var(--aviso-claro); color: var(--texto); border-left: 3px solid var(--aviso); }
+
+/* Rodada */
+section.rodada { background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--raio); padding: 20px; position: sticky; top: 16px; }
+.acoes-rodada { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 4px 0 14px; }
+.estado { margin: 0 0 4px; font-size: 1.05rem; font-weight: 600; }
+.estado.ok { color: var(--ok); } .estado.erro { color: var(--erro); } .estado.aviso { color: var(--aviso); }
+.sub-estado { margin: 0 0 12px; color: var(--texto-2); font-size: 0.95rem; }
+.barra { height: 8px; background: var(--linha); border-radius: 4px; overflow: hidden; margin: 0 0 16px; }
+.barra span { display: block; height: 100%; width: 0; background: var(--placa); border-radius: 4px; }
+@media (prefers-reduced-motion: no-preference) { .barra span { transition: width .4s ease; } }
+
+ol.etapas { list-style: none; margin: 0 0 16px; padding: 0; }
+ol.etapas li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 2px 10px; padding: 8px 0; border-top: 1px solid var(--linha); align-items: start; }
+ol.etapas .marca { width: 14px; height: 14px; border-radius: 50%; margin-top: 4px; border: 2px solid var(--linha); }
+ol.etapas li.rodando .marca { border-color: var(--placa); border-top-color: transparent; }
+@media (prefers-reduced-motion: no-preference) { ol.etapas li.rodando .marca { animation: gira 0.9s linear infinite; } }
+@keyframes gira { to { transform: rotate(360deg); } }
+ol.etapas li.ok .marca { background: var(--ok); border-color: var(--ok); }
+ol.etapas li.falha .marca { background: var(--erro); border-color: var(--erro); }
+ol.etapas li.neutra .marca { background: var(--linha); }
+ol.etapas .nome-etapa { font-weight: 500; }
+ol.etapas li.pendente .nome-etapa { color: var(--texto-2); font-weight: 400; }
+ol.etapas .resultado { font-size: 0.92rem; color: var(--texto-2); text-align: right; white-space: nowrap; }
+ol.etapas li.ok .resultado { color: var(--ok); font-weight: 600; }
+ol.etapas li.falha .resultado { color: var(--erro); font-weight: 600; }
+ol.etapas .agora { grid-column: 2 / 4; font-size: 0.9rem; color: var(--placa); }
+ol.etapas .agora.pedido { color: var(--texto); background: var(--aviso-claro); border-left: 3px solid var(--aviso); padding: 8px 10px; border-radius: var(--raio); font-weight: 600; }
+ol.etapas .obs { grid-column: 2 / 4; font-size: 0.88rem; color: var(--texto-2); }
+ol.etapas li.grupo-busca { display: block; }
+.grupo-busca { font: 600 0.95rem "Barlow Semi Condensed", Barlow, sans-serif; color: var(--texto-2); padding: 12px 0 2px; border-top: 1px solid var(--linha); }
+
+details.registro { border-top: 1px solid var(--linha); padding-top: 10px; }
+details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.95rem; }
+.log { margin: 10px 0 0; max-height: 280px; overflow: auto; background: var(--fundo); border-radius: var(--raio); padding: 10px 12px;
+  font: 0.82rem/1.55 "Cascadia Mono", Consolas, "SFMono-Regular", monospace; white-space: pre-wrap; word-break: break-word; }
+.log .t { color: var(--texto-2); }
+.log .detalhe { color: var(--texto-2); }
+.log .etapa { font-weight: 600; }
+.log .warning { color: var(--aviso); } .log .error { color: var(--erro); }
+.log .fim { color: var(--ok); font-weight: 600; }
+
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--texto); color: var(--fundo); padding: 10px 16px; border-radius: var(--raio); font-size: 0.95rem; }
+
+@media (max-width: 980px) {
+  main.grade { grid-template-columns: 1fr; }
+  section.rodada { position: static; }
+}
+@media (max-width: 560px) {
+  .campos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .campo.c2, .campo.c3, .campo.c6 { grid-column: span 2; }
+  h1 { font-size: 1.8rem; }
+}
+</style>
+</head>
+<body>
+<div class="pagina">
+  <header class="topo">
+    <div class="titulo">
+      <h1>Busca Carro</h1>
+      <p class="resumo-topo" id="resumo-topo">Carregando…</p>
+      <p class="aviso-email" id="aviso-email" hidden></p>
+      <p class="versao-topo" id="versao-topo"></p>
+    </div>
+    <button class="secundario" id="abrir-relatorio" hidden>Abrir último relatório</button>
+  </header>
+  <div class="faixa-atualizacao" id="faixa-atualizacao" role="status" hidden></div>
+
+  <main class="grade">
+    <div class="coluna">
+    <section aria-labelledby="t-carro">
+      <div class="cabeca">
+        <h2 id="t-carro">Carro buscado</h2>
+        <button class="secundario" id="mostrar-form">Escolher carro</button>
+      </div>
+
+      <form id="nova" hidden novalidate>
+        <h3 id="titulo-form">Escolher o carro</h3>
+        <p class="nota-troca" id="nota-troca" hidden></p>
+        <div class="campos">
+          <label class="campo c3">Marca
+            <input id="f-marca" list="l-marcas" autocomplete="off" required placeholder="Ex.: Toyota">
+          </label>
+          <label class="campo c3">Modelo
+            <input id="f-modelo" list="l-modelos" autocomplete="off" required placeholder="Ex.: Corolla">
+          </label>
+          <label class="campo c6">Versão
+            <input id="f-versao" autocomplete="off" placeholder="Opcional. Em branco traz todas (ex.: XEi, EXL)">
+          </label>
+          <label class="campo c2">Ano de
+            <input id="f-ano-de" type="number" inputmode="numeric" min="1950" max="2035" placeholder="ex.: 2015">
+          </label>
+          <label class="campo c2">Ano até
+            <input id="f-ano-ate" type="number" inputmode="numeric" min="1950" max="2035" placeholder="ex.: 2020">
+          </label>
+          <label class="campo c2">Km máximo
+            <input id="f-km" type="number" inputmode="numeric" min="0" step="5000" placeholder="qualquer">
+          </label>
+          <label class="campo c2">Estado
+            <select id="f-uf"></select>
+          </label>
+          <label class="campo c2">Cidade
+            <input id="f-cidade" autocomplete="off" disabled placeholder="escolha o estado">
+          </label>
+          <label class="campo c2">Preço máximo (R$)
+            <input id="f-preco" type="number" inputmode="numeric" min="0" step="1000" placeholder="qualquer">
+          </label>
+          <fieldset class="escolha campo c3">
+            <legend>Câmbio</legend>
+            <div class="botoes-escolha">
+              <label><input type="radio" name="cambio" value="" checked> Qualquer</label>
+              <label><input type="radio" name="cambio" value="automatico"> Automático</label>
+              <label><input type="radio" name="cambio" value="manual"> Manual</label>
+            </div>
+          </fieldset>
+          <label class="campo c3">Combustível
+            <select id="f-comb">
+              <option value="">Qualquer</option><option value="flex">Flex</option><option value="gasolina">Gasolina</option>
+              <option value="diesel">Diesel</option><option value="hibrido">Híbrido</option><option value="eletrico">Elétrico</option>
+            </select>
+          </label>
+          <fieldset class="escolha campo c6">
+            <legend>Blindagem</legend>
+            <div class="botoes-escolha">
+              <label><input type="radio" name="blindado" value="" checked> Tanto faz</label>
+              <label><input type="radio" name="blindado" value="sim"> Só blindados</label>
+              <label><input type="radio" name="blindado" value="nao"> Sem blindagem</label>
+            </div>
+          </fieldset>
+        </div>
+        <p class="msg-form" id="msg-form" hidden></p>
+        <div class="form-acoes">
+          <button type="submit" class="primario" id="salvar">Salvar carro</button>
+          <button type="button" class="secundario" id="forcar" hidden>Salvar mesmo assim</button>
+          <button type="button" class="discreto" id="cancelar">Cancelar</button>
+        </div>
+        <datalist id="l-marcas"></datalist>
+        <datalist id="l-modelos"></datalist>
+      </form>
+
+      <div class="carro-atual" id="carro-atual" hidden>
+        <div class="info"><p class="nome" id="carro-nome"></p><p class="det" id="carro-det"></p></div>
+        <button class="discreto" id="excluir">Excluir</button>
+      </div>
+      <div class="vazio" id="vazio" hidden>
+        <p>Nenhum carro escolhido. Clique em "Escolher carro" para definir o que buscar.</p>
+      </div>
+    </section>
+
+    <section class="email" aria-labelledby="t-email">
+      <div class="cabeca">
+        <h2 id="t-email">E-mail do resultado</h2>
+        <button class="secundario" id="editar-email">Configurar</button>
+      </div>
+      <p class="email-resumo" id="email-resumo"></p>
+      <form id="form-email" hidden novalidate>
+        <div class="campos">
+          <fieldset class="escolha campo c6">
+            <legend>Enviar o resultado de cada busca por e-mail</legend>
+            <div class="botoes-escolha">
+              <label><input type="radio" name="e-ativo" value="sim"> Sim</label>
+              <label><input type="radio" name="e-ativo" value="nao"> Não</label>
+            </div>
+          </fieldset>
+          <label class="campo c6">Gmail que envia
+            <input id="e-remetente" type="email" autocomplete="email" placeholder="seu.email@gmail.com">
+          </label>
+          <label class="campo c6">Senha de app do Gmail
+            <input id="e-senha" type="password" autocomplete="new-password" placeholder="16 letras">
+            <span class="ajuda">Não é a senha normal. Crie em <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a> (a conta precisa da verificação em duas etapas).</span>
+          </label>
+          <label class="campo c6">Quem recebe
+            <input id="e-dest" autocomplete="off" placeholder="um ou mais e-mails, separados por vírgula">
+          </label>
+        </div>
+        <p class="msg-form" id="msg-email" hidden></p>
+        <div class="form-acoes">
+          <button type="submit" class="primario" id="salvar-email">Salvar</button>
+          <button type="button" class="secundario" id="testar-email">Salvar e enviar teste</button>
+          <button type="button" class="discreto" id="cancelar-email">Cancelar</button>
+        </div>
+      </form>
+    </section>
+    </div>
+
+    <section class="rodada" aria-labelledby="t-rodada">
+      <h2 id="t-rodada">Busca</h2>
+      <div class="acoes-rodada">
+        <button class="primario grande" id="rodar">Rodar a busca</button>
+        <button class="secundario" id="parar" hidden>Parar busca</button>
+        <button class="secundario" id="ver-relatorio" hidden>Abrir relatório</button>
+      </div>
+      <div aria-live="polite">
+        <p class="estado" id="estado">Nenhuma busca rodou ainda.</p>
+        <p class="sub-estado" id="sub-estado"></p>
+      </div>
+      <div class="barra" id="barra" hidden><span></span></div>
+      <ol class="etapas" id="etapas"></ol>
+      <details class="registro" id="registro" hidden>
+        <summary>Registro detalhado</summary>
+        <div class="log" id="log" role="log" aria-live="off"></div>
+      </details>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const num = new Intl.NumberFormat('pt-BR');
+  const UFS = { AC: 'Acre', AL: 'Alagoas', AP: 'Amapá', AM: 'Amazonas', BA: 'Bahia', CE: 'Ceará', DF: 'Distrito Federal', ES: 'Espírito Santo', GO: 'Goiás', MA: 'Maranhão', MT: 'Mato Grosso', MS: 'Mato Grosso do Sul', MG: 'Minas Gerais', PA: 'Pará', PB: 'Paraíba', PR: 'Paraná', PE: 'Pernambuco', PI: 'Piauí', RJ: 'Rio de Janeiro', RN: 'Rio Grande do Norte', RS: 'Rio Grande do Sul', RO: 'Rondônia', RR: 'Roraima', SC: 'Santa Catarina', SP: 'São Paulo', SE: 'Sergipe', TO: 'Tocantins' };
+  const ORIGEM = { painel: 'iniciada por você no painel', automatica: 'iniciada automaticamente', manual: 'iniciada manualmente' };
+
+  let estado = null, offsetRelogio = 0;
+  let rodadaAtual = null, desde = 0, prog = null;
+
+  // ------------------------------------------------------------------ chamadas
+  async function api(metodo, caminho, corpo) {
+    const r = await fetch(caminho, { method: metodo, headers: { 'Content-Type': 'application/json', 'X-Painel': '1' }, body: corpo ? JSON.stringify(corpo) : undefined });
+    let j = {}; try { j = await r.json(); } catch (e) { /* sem corpo */ }
+    return { ok: r.ok, status: r.status, ...j };
+  }
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.hidden = false;
+    clearTimeout(toast.h); toast.h = setTimeout(() => { t.hidden = true; }, 3500);
+  }
+
+  // ------------------------------------------------------------------ cabeçalho e lista
+  function dataBR(iso) { if (!iso) return ''; const [a, m, d] = iso.split('-'); return d + '/' + m + '/' + a; }
+  function renderTopo() {
+    const u = estado.ultima;
+    let t = '';
+    if (u) {
+      t = 'Última busca concluída em <b>' + dataBR(u.data) + ' às ' + esc(u.hora) + '</b>: ' + num.format(u.carros || 0) + ' carros';
+      if (u.abaixo_fipe != null) t += ', ' + num.format(u.abaixo_fipe) + ' abaixo da FIPE';
+      t += '.';
+    } else {
+      t = 'Nenhuma busca concluída ainda.';
+    }
+    if (estado.proxima) t += ' Próxima busca automática a partir de <b>' + esc(estado.proxima) + '</b>.';
+    else t += ' A busca automática roda a cada ' + estado.intervalo_dias + ' dias, quando o computador liga.';
+    $('resumo-topo').innerHTML = t;
+    const e = estado.email;
+    const av = $('aviso-email');
+    if (e.ativo && !e.configurado) { av.hidden = false; av.textContent = 'O e-mail ainda não foi configurado. Configure em "E-mail do resultado" para receber os carros por e-mail.'; }
+    else av.hidden = true;
+    $('abrir-relatorio').hidden = !estado.tem_relatorio;
+    renderVersao();
+  }
+
+  // ------------------------------------------------------------------ versão e atualização automática
+  function guardado(chave, valor) {
+    try { if (valor === undefined) return localStorage.getItem(chave); localStorage.setItem(chave, valor); } catch (e) { /* sem armazenamento */ }
+    return null;
+  }
+  function renderVersao() {
+    const a = estado.atualizacao || {};
+    const emUso = estado.versao;
+    $('versao-topo').textContent = 'Versão ' + emUso + (a.automatica ? ' · atualiza sozinho pela internet' : '');
+    const f = $('faixa-atualizacao');
+    let html = '', cls = '';
+    const notas = (t) => t ? '<span class="notas">' + esc(t) + '</span>' : '';
+    if (a.versao_ativa && a.versao_ativa !== emUso) {
+      html = '<p><b>Versão ' + esc(a.versao_ativa) + ' instalada.</b> As próximas buscas já usam a versão nova; feche e abra o painel para ver as mudanças aqui.' + notas(a.notas_instalada) + '</p>';
+    } else if (a.situacao === 'precisa_instalador' && a.url_instalador) {
+      cls = 'aviso';
+      html = '<p><b>Há uma versão nova (' + esc(a.ultima_versao) + ') que precisa do instalador completo.</b> Baixe e rode o instalador; o carro buscado e o e-mail continuam configurados.' + notas(a.notas) + '</p>' +
+        '<a class="secundario botao-link" href="' + esc(a.url_instalador) + '" target="_blank" rel="noopener">Baixar o instalador</a>';
+    } else if (a.instalada === emUso && a.instalada_em && Date.now() / 1000 - a.instalada_em < 3 * 86400 && guardado('bc-visto') !== emUso) {
+      html = '<p><b>Atualizado para a versão ' + esc(emUso) + '.</b>' + notas(a.notas_instalada) + '</p><button class="secundario" id="visto-versao">Ok</button>';
+    }
+    f.className = 'faixa-atualizacao' + (cls ? ' ' + cls : '');
+    if (html !== f.dataset.html) { f.innerHTML = html; f.dataset.html = html; }
+    f.hidden = !html;
+    const ok = $('visto-versao');
+    if (ok) ok.onclick = () => { guardado('bc-visto', emUso); f.hidden = true; f.dataset.html = ''; };
+  }
+
+  let carroDesenhado = null;
+  function atual() { return estado && estado.buscas.length ? estado.buscas[0] : null; }
+  function renderLista() {
+    const b = atual();
+    const assinatura = JSON.stringify(b);
+    if (assinatura === carroDesenhado) return;
+    carroDesenhado = assinatura;
+    $('carro-atual').hidden = !b; $('vazio').hidden = !!b;
+    if (b) { $('carro-nome').textContent = b.titulo; $('carro-det').textContent = b.detalhes; }
+    $('mostrar-form').textContent = b ? 'Trocar carro' : 'Escolher carro';
+    $('titulo-form').textContent = b ? 'Trocar o carro buscado' : 'Escolher o carro';
+    $('nota-troca').hidden = !b;
+    if (b) $('nota-troca').innerHTML = 'A busca é de um carro por vez: ao salvar, o novo carro substitui o <b>' + esc(b.titulo) + '</b>.';
+  }
+
+  $('excluir').addEventListener('click', async () => {
+    const btn = $('excluir'), b = atual();
+    if (!b) return;
+    if (!btn.classList.contains('perigo')) {
+      btn.classList.remove('discreto'); btn.classList.add('perigo'); btn.textContent = 'Confirmar exclusão';
+      setTimeout(() => { btn.classList.add('discreto'); btn.classList.remove('perigo'); btn.textContent = 'Excluir'; }, 4000);
+      return;
+    }
+    btn.disabled = true;
+    const r = await api('DELETE', '/api/buscas/' + encodeURIComponent(b.id));
+    btn.disabled = false; btn.classList.add('discreto'); btn.classList.remove('perigo'); btn.textContent = 'Excluir';
+    if (r.ok) { estado.buscas = r.buscas; renderLista(); renderBotoes(); toast(b.titulo + ' saiu da busca.'); }
+    else toast(r.erro || 'Não foi possível excluir.');
+  });
+
+  // ------------------------------------------------------------------ formulário
+  $('f-uf').innerHTML = '<option value="">Brasil inteiro</option>' + Object.entries(UFS).map(([s, n]) => '<option value="' + s + '">' + esc(n) + '</option>').join('');
+  $('f-uf').addEventListener('change', () => { const sem = !$('f-uf').value; $('f-cidade').disabled = sem; $('f-cidade').placeholder = sem ? 'escolha o estado' : 'opcional'; if (sem) $('f-cidade').value = ''; });
+  fetch('/api/marcas').then((r) => r.json()).then((j) => { $('l-marcas').innerHTML = j.marcas.map((m) => '<option value="' + esc(m) + '">').join(''); }).catch(() => {});
+  let marcaSugerida = '';
+  async function sugerirModelos() {
+    const m = $('f-marca').value.trim();
+    if (!m || m === marcaSugerida) return;
+    marcaSugerida = m;
+    try {
+      const j = await (await fetch('/api/modelos?marca=' + encodeURIComponent(m))).json();
+      $('l-modelos').innerHTML = (j.modelos || []).map((x) => '<option value="' + esc(x) + '">').join('');
+    } catch (e) { /* sem sugestões */ }
+  }
+  $('f-marca').addEventListener('change', sugerirModelos);
+  $('f-modelo').addEventListener('focus', sugerirModelos);
+
+  function abrirForm(abrir) {
+    $('nova').hidden = !abrir; $('mostrar-form').hidden = abrir;
+    if (abrir) { $('carro-atual').hidden = true; $('vazio').hidden = true; } else { carroDesenhado = null; renderLista(); }
+    msgForm(null);
+    if (abrir) $('f-marca').focus();
+  }
+  $('mostrar-form').addEventListener('click', () => abrirForm(true));
+  $('cancelar').addEventListener('click', () => { $('nova').reset(); $('f-cidade').disabled = true; abrirForm(false); });
+  function msgForm(texto, tipo) {
+    const m = $('msg-form'); m.hidden = !texto; m.textContent = texto || ''; m.className = 'msg-form ' + (tipo || 'erro');
+    $('forcar').hidden = tipo !== 'aviso';
+  }
+  function dadosForm() {
+    const radio = (n) => (document.querySelector('input[name="' + n + '"]:checked') || {}).value || '';
+    const bl = radio('blindado');
+    return { marca: $('f-marca').value, modelo: $('f-modelo').value, versao: $('f-versao').value, ano_de: $('f-ano-de').value, ano_ate: $('f-ano-ate').value, km_max: $('f-km').value, uf: $('f-uf').value, cidade: $('f-cidade').value, preco_max: $('f-preco').value, cambio: radio('cambio'), combustivel: $('f-comb').value, blindado: bl === 'sim' ? true : (bl === 'nao' ? false : null) };
+  }
+  async function salvar(forcar) {
+    const d = dadosForm();
+    if (!d.marca.trim() || !d.modelo.trim()) { msgForm('Informe a marca e o modelo.'); return; }
+    $('salvar').disabled = true; $('salvar').textContent = 'Conferindo na FIPE…';
+    const r = await api('POST', '/api/buscas', { ...d, forcar: !!forcar });
+    $('salvar').disabled = false; $('salvar').textContent = 'Salvar carro';
+    if (r.ok) {
+      estado.buscas = r.buscas; renderBotoes();
+      $('nova').reset(); $('f-cidade').disabled = true; abrirForm(false);
+      toast(r.anterior ? r.busca.titulo + ' substituiu o ' + r.anterior + '.' : r.busca.titulo + ' é o carro buscado.');
+    } else if (r.status === 409 && r.aviso) {
+      msgForm(r.aviso + ' Se estiver certo, salve mesmo assim.', 'aviso');
+    } else {
+      msgForm(r.erro || 'Não foi possível salvar.');
+    }
+  }
+  $('nova').addEventListener('submit', (e) => { e.preventDefault(); salvar(false); });
+  $('forcar').addEventListener('click', () => salvar(true));
+
+  // ------------------------------------------------------------------ e-mail
+  function renderEmail() {
+    const e = estado.email;
+    let t;
+    if (!e.configurado) t = 'Ainda não configurado. Sem isso, os resultados ficam só aqui no painel.';
+    else if (!e.ativo) t = 'Desligado. Os resultados ficam só aqui no painel.';
+    else t = 'Enviando para <b>' + esc(e.destinatarios) + '</b> a partir de ' + esc(e.remetente) + '.';
+    $('email-resumo').innerHTML = t;
+  }
+  function msgEmail(texto, tipo) { const m = $('msg-email'); m.hidden = !texto; m.textContent = texto || ''; m.className = 'msg-form ' + (tipo || 'erro'); }
+  function abrirEmail(abrir) {
+    $('form-email').hidden = !abrir; $('editar-email').hidden = abrir; $('email-resumo').hidden = abrir; msgEmail(null);
+    if (abrir) {
+      const e = estado.email;
+      document.querySelector('input[name="e-ativo"][value="' + (e.ativo || !e.configurado ? 'sim' : 'nao') + '"]').checked = true;
+      $('e-remetente').value = e.remetente || ''; $('e-dest').value = e.destinatarios || ''; $('e-senha').value = '';
+      $('e-senha').placeholder = e.tem_senha ? 'já configurada (deixe em branco para manter)' : '16 letras';
+      $('e-remetente').focus();
+    }
+  }
+  $('editar-email').addEventListener('click', () => abrirEmail(true));
+  $('cancelar-email').addEventListener('click', () => abrirEmail(false));
+  async function salvarEmail(testar) {
+    const ativo = (document.querySelector('input[name="e-ativo"]:checked') || {}).value === 'sim';
+    const bS = $('salvar-email'), bT = $('testar-email');
+    bS.disabled = bT.disabled = true; msgEmail(testar ? 'Salvando e enviando o teste…' : 'Salvando…', 'aviso');
+    const r = await api('POST', '/api/email', { ativo, remetente: $('e-remetente').value, senha_app: $('e-senha').value, destinatarios: $('e-dest').value });
+    if (!r.ok) { bS.disabled = bT.disabled = false; msgEmail(r.erro || 'Não foi possível salvar.'); return; }
+    estado.email = { ...estado.email, ...r.email }; $('e-senha').value = '';
+    $('e-senha').placeholder = r.email.tem_senha ? 'já configurada (deixe em branco para manter)' : '16 letras';
+    if (testar) {
+      const t = await api('POST', '/api/email/teste');
+      bS.disabled = bT.disabled = false;
+      msgEmail(t.msg || t.erro || 'Não foi possível enviar o teste.', t.ok ? 'ok' : 'erro');
+      renderEmail(); renderTopo();
+      return;
+    }
+    bS.disabled = bT.disabled = false;
+    abrirEmail(false); renderEmail(); renderTopo(); toast('Configuração de e-mail salva.');
+  }
+  $('form-email').addEventListener('submit', (ev) => { ev.preventDefault(); salvarEmail(false); });
+  $('testar-email').addEventListener('click', () => salvarEmail(true));
+
+  // ------------------------------------------------------------------ rodada: botões
+  function renderBotoes() {
+    const rodando = !!(estado && estado.rodando);
+    $('rodar').disabled = rodando || !estado.buscas.length;
+    $('rodar').textContent = rodando ? 'Busca em andamento' : 'Rodar a busca';
+    $('parar').hidden = !rodando;
+    $('rodar').title = estado.buscas.length ? '' : 'Escolha um carro primeiro';
+  }
+  $('rodar').addEventListener('click', async () => {
+    $('rodar').disabled = true;
+    const r = await api('POST', '/api/rodar');
+    if (!r.ok) toast(r.msg || r.erro || 'Não foi possível iniciar.');
+    else { esperandoInicio = Date.now(); $('estado').className = 'estado'; $('estado').textContent = 'Iniciando a busca…'; $('sub-estado').textContent = 'Abrindo o programa de coleta.'; }
+    ciclo(true);
+  });
+  $('parar').addEventListener('click', async () => {
+    if (!$('parar').classList.contains('perigo')) {
+      $('parar').classList.add('perigo'); $('parar').textContent = 'Confirmar: parar agora';
+      setTimeout(() => { $('parar').classList.remove('perigo'); $('parar').textContent = 'Parar busca'; }, 4000);
+      return;
+    }
+    $('parar').disabled = true;
+    const r = await api('POST', '/api/parar');
+    $('parar').disabled = false; $('parar').classList.remove('perigo'); $('parar').textContent = 'Parar busca';
+    toast(r.msg || r.erro || '');
+    ciclo(true);
+  });
+  const abrirRelatorio = () => window.open('/relatorio', '_blank');
+  $('abrir-relatorio').addEventListener('click', abrirRelatorio);
+  $('ver-relatorio').addEventListener('click', abrirRelatorio);
+  let esperandoInicio = 0;
+
+  // ------------------------------------------------------------------ rodada: progresso
+  function novaRodada(ev) {
+    prog = { inicio: ev, ts0: ev.ts, itens: [], porChave: {}, atual: null, fim: null, log: [] };
+    const add = (chave, nome, grupo) => { const it = { chave, nome, grupo, estado: 'pendente', agora: '', resultado: '', obs: '' }; prog.itens.push(it); prog.porChave[chave] = it; };
+    add('navegador', 'Abrir o navegador automático', null);
+    (ev.buscas || []).forEach((b) => (ev.sites || []).forEach((s) => add(b.id + ':' + s.chave, s.nome, b)));
+    add('fipe', 'Comparar com a tabela FIPE', null);
+    add('relatorio', 'Gerar o relatório e enviar o e-mail', null);
+    $('log').innerHTML = '';
+  }
+  function hora(ts) { return new Date((ts) * 1000).toLocaleTimeString('pt-BR'); }
+  function addLog(ts, texto, classe) {
+    const el = $('log');
+    const perto = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+    const div = document.createElement('div');
+    div.className = classe || '';
+    div.innerHTML = '<span class="t">' + hora(ts) + '</span>  ' + esc(texto);
+    el.appendChild(div);
+    while (el.childNodes.length > 600) el.removeChild(el.firstChild);
+    if (perto) el.scrollTop = el.scrollHeight;
+  }
+  function concluirAtual() {
+    if (prog.atual && prog.atual.estado === 'rodando') { prog.atual.estado = 'ok'; prog.atual.agora = ''; }
+  }
+  const ROTULO_STATUS = { bloqueado: 'bloqueado', erro: 'erro', indisponivel: 'indisponível', desativado: 'desligado' };
+  function aplicar(ev) {
+    if (ev.tipo === 'inicio') { novaRodada(ev); addLog(ev.ts, 'Busca ' + (ORIGEM[ev.origem] || 'iniciada') + '.', 'etapa'); return; }
+    if (!prog) return;
+    if (ev.tipo === 'etapa') {
+      concluirAtual();
+      const it = prog.porChave[ev.chave];
+      if (it) { it.estado = 'rodando'; it.agora = ''; prog.atual = it; }
+      addLog(ev.ts, ev.msg, 'etapa');
+    } else if (ev.tipo === 'detalhe') {
+      if (prog.atual) prog.atual.agora = ev.msg;
+      addLog(ev.ts, '  ' + ev.msg, 'detalhe');
+    } else if (ev.tipo === 'site') {
+      const it = prog.porChave[ev.chave];
+      if (it) {
+        const ok = ev.status === 'ok';
+        it.estado = ok ? 'ok' : (ev.status === 'indisponivel' || ev.status === 'desativado' ? 'neutra' : 'falha');
+        it.resultado = ok ? num.format(ev.qtd) + (ev.qtd === 1 ? ' anúncio' : ' anúncios') : (ROTULO_STATUS[ev.status] || ev.status);
+        it.obs = ev.msg || ''; it.agora = '';
+      }
+      addLog(ev.ts, (it ? it.nome : ev.site) + ': ' + (ev.status === 'ok' ? ev.qtd + ' anúncios lidos' : (ROTULO_STATUS[ev.status] || ev.status) + (ev.msg ? ' (' + ev.msg + ')' : '')), ev.status === 'ok' ? '' : 'warning');
+    } else if (ev.tipo === 'log') {
+      addLog(ev.ts, ev.msg, ev.nivel);
+    } else if (ev.tipo === 'fim') {
+      if (ev.status === 'ok') concluirAtual();
+      else if (prog.atual && prog.atual.estado === 'rodando') { prog.atual.estado = 'falha'; prog.atual.agora = ''; }
+      prog.fim = ev;
+      addLog(ev.ts, ev.status === 'ok' ? 'Busca concluída.' : (ev.msg || 'Busca encerrada com erro.'), ev.status === 'ok' ? 'fim' : 'error');
+    }
+  }
+  function duracao(s) { s = Math.max(0, Math.round(s)); const m = Math.floor(s / 60), r = s % 60; return m ? m + ' min ' + String(r).padStart(2, '0') + ' s' : r + ' s'; }
+  function renderProgresso() {
+    const est = $('estado'), sub = $('sub-estado');
+    if (estado && estado.erro_inicio && !estado.rodando) {
+      esperandoInicio = 0;
+      est.className = 'estado erro'; est.textContent = 'A busca não começou.'; sub.textContent = estado.erro_inicio;
+      $('barra').hidden = true; $('etapas').innerHTML = ''; $('ver-relatorio').hidden = true;
+      return;
+    }
+    if (esperandoInicio && (!prog || prog.fim)) {
+      est.className = 'estado'; est.textContent = 'Iniciando a busca…'; sub.textContent = 'Abrindo o programa de coleta.';
+      $('barra').hidden = true; $('etapas').innerHTML = ''; $('ver-relatorio').hidden = true;
+      return;
+    }
+    if (!prog) {
+      $('barra').hidden = true; $('registro').hidden = true; $('etapas').innerHTML = ''; $('ver-relatorio').hidden = true;
+      if (estado && estado.erro_inicio) { est.className = 'estado erro'; est.textContent = 'A busca não começou.'; sub.textContent = estado.erro_inicio; }
+      else if (!esperandoInicio) { est.className = 'estado'; est.textContent = 'Nenhuma busca rodou ainda.'; sub.textContent = 'Clique em "Rodar a busca" para começar.'; }
+      return;
+    }
+    $('registro').hidden = false;
+    const feitos = prog.itens.filter((i) => i.estado !== 'pendente' && i.estado !== 'rodando').length;
+    const pct = prog.fim ? 100 : Math.round(feitos / prog.itens.length * 100);
+    const rodando = !prog.fim && !!(estado && estado.rodando);
+    $('barra').hidden = !rodando && !prog.fim;
+    $('barra').firstChild.style.width = pct + '%';
+    const agora = Date.now() / 1000 + offsetRelogio;
+    if (prog.fim) {
+      const f = prog.fim;
+      const dur = duracao(f.ts - prog.ts0);
+      if (f.status === 'ok') {
+        est.className = 'estado ok'; est.textContent = 'Busca concluída em ' + dur + '.';
+        sub.textContent = num.format(f.carros) + (f.carros === 1 ? ' carro encontrado' : ' carros encontrados') + ', ' + num.format(f.abaixo_fipe) + ' abaixo da FIPE. E-mail: ' + (f.email || '—') + '. Terminou às ' + hora(f.ts) + '.';
+      } else if (f.status === 'interrompida') {
+        est.className = 'estado aviso'; est.textContent = 'Busca interrompida.'; sub.textContent = 'Parada às ' + hora(f.ts) + ', depois de ' + dur + '. Nenhum relatório novo foi gerado.';
+      } else {
+        est.className = 'estado erro'; est.textContent = 'A busca terminou com erro.'; sub.textContent = (f.msg || '') + ' Veja o registro detalhado abaixo.';
+      }
+      $('ver-relatorio').hidden = !(f.status === 'ok' && estado && estado.tem_relatorio);
+    } else if (rodando) {
+      est.className = 'estado'; est.textContent = 'Buscando… ' + pct + '%';
+      sub.textContent = 'Rodando há ' + duracao(agora - prog.ts0) + ', ' + (ORIGEM[prog.inicio.origem] || '') + '. Pode fechar esta página: a busca continua e o relatório chega por e-mail.';
+      $('ver-relatorio').hidden = true;
+    } else {
+      est.className = 'estado erro'; est.textContent = 'A busca parou sem terminar.';
+      sub.textContent = 'O programa foi encerrado no meio (computador desligado ou falha). Veja o registro detalhado e rode de novo.';
+      $('ver-relatorio').hidden = true;
+    }
+    let html = '', grupo = null;
+    const varias = (prog.inicio.buscas || []).length > 1;
+    for (const it of prog.itens) {
+      if (it.grupo !== grupo) {
+        grupo = it.grupo;
+        if (grupo) html += '<li class="grupo-busca" aria-hidden="true">' + esc(grupo.titulo) + (varias ? '' : ', ' + esc(grupo.detalhes)) + '</li>';
+      }
+      const res = it.estado === 'ok' && !it.resultado ? 'feito' : it.resultado;
+      html += '<li class="' + it.estado + '"><span class="marca" aria-hidden="true"></span><span class="nome-etapa">' + esc(it.nome) + '</span>' +
+        '<span class="resultado">' + esc(it.estado === 'pendente' ? 'na fila' : (it.estado === 'rodando' ? 'agora' : res)) + '</span>' +
+        (it.estado === 'rodando' && it.agora ? '<span class="agora' + (/^VERIFICAÇÃO/.test(it.agora) ? ' pedido' : '') + '">' + esc(it.agora) + '</span>' : '') +
+        (it.obs && it.estado !== 'ok' ? '<span class="obs">' + esc(it.obs) + '</span>' : '') + '</li>';
+    }
+    $('etapas').innerHTML = html;
+  }
+
+  // ------------------------------------------------------------------ ciclo de atualização
+  let timer = null, ocupado = false;
+  async function ciclo(imediato) {
+    clearTimeout(timer);
+    if (ocupado && !imediato) return;
+    ocupado = true;
+    try {
+      const [e, p] = await Promise.all([
+        fetch('/api/estado').then((r) => r.json()),
+        fetch('/api/progresso?desde=' + desde).then((r) => r.json()),
+      ]);
+      estado = e; offsetRelogio = e.agora - Date.now() / 1000;
+      if (p.rodada && p.rodada !== rodadaAtual) {
+        rodadaAtual = p.rodada; prog = null; desde = 0;
+        const todos = await fetch('/api/progresso?desde=0').then((r) => r.json());
+        todos.eventos.forEach(aplicar); desde = todos.desde;
+        esperandoInicio = 0;
+      } else {
+        p.eventos.forEach(aplicar); desde = p.desde;
+      }
+      if (esperandoInicio && Date.now() - esperandoInicio > 60000) esperandoInicio = 0;
+      renderTopo(); renderBotoes(); renderProgresso();
+      if ($('form-email').hidden) renderEmail();
+      renderLista();
+    } catch (err) {
+      $('estado').className = 'estado erro'; $('estado').textContent = 'O painel perdeu a conexão com o programa.';
+      $('sub-estado').textContent = 'Abra de novo pelo atalho "Busca de carros" na área de trabalho.';
+    } finally {
+      ocupado = false;
+      const rapido = (estado && estado.rodando) || esperandoInicio;
+      timer = setTimeout(ciclo, rapido ? 1000 : 4000);
+    }
+  }
+  setInterval(() => { if (prog && !prog.fim && estado && estado.rodando) renderProgresso(); }, 1000);
+  ciclo(true);
+})();
+</script>
+</body>
+</html>

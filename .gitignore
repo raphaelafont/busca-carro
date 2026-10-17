@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+dist/
+instalador/construcao/
+instalador/saida/
+instalador/icone_previa.png
+# dados de uso (ficam só no PC de cada pessoa)
+config.ini
+buscas.json
+buscas_planilha_antiga.xlsx
+dados/
+logs/
+resultados/
+versoes/
+docs/

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="fundo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2169CC"/>
+      <stop offset="1" stop-color="#103F86"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="url(#fundo)"/>
+  <g transform="translate(256,262) scale(1.06) translate(-257,-300)">
+    <rect x="50" y="380" width="414" height="12" rx="6" fill="#6B9BE0" opacity="0.7"/>
+    <!-- cupê esportivo genérico, de perfil -->
+    <path fill="#FFFFFF" d="
+      M 52 322
+      C 52 302, 62 292, 84 288
+      L 128 282
+      C 168 252, 210 232, 262 228
+      L 292 228
+      C 318 230, 338 242, 364 260
+      L 432 272
+      C 452 276, 462 290, 462 306
+      L 462 322
+      C 462 330, 455 336, 446 336
+      L 416 336
+      A 46 46 0 0 0 324 336
+      L 188 336
+      A 46 46 0 0 0 96 336
+      L 68 336
+      C 59 336, 52 330, 52 322 Z"/>
+    <path fill="#A9C6F2" d="
+      M 160 281
+      C 194 257, 228 242, 264 238
+      L 290 238
+      C 308 240, 326 249, 346 265
+      L 352 271 Z"/>
+    <rect x="276" y="236" width="9" height="40" fill="#FFFFFF"/>
+    <path fill="#FFD45C" d="M 436 281 L 460 290 L 460 300 L 438 297 Z"/>
+    <rect x="54" y="296" width="20" height="10" rx="4" fill="#FF6B5C"/>
+    <circle cx="142" cy="336" r="40" fill="#0B2A57"/>
+    <circle cx="142" cy="336" r="18" fill="#D6E4F8"/>
+    <circle cx="370" cy="336" r="40" fill="#0B2A57"/>
+    <circle cx="370" cy="336" r="18" fill="#D6E4F8"/>
+  </g>
+</svg>

@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carros encontrados</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --fundo: #F3F5F6;
+  --superficie: #FFFFFF;
+  --texto: #1F2A30;
+  --texto-2: #56636B;
+  --linha: #DCE2E5;
+  --placa: #1450A3;
+  --placa-claro: #E6EEF9;
+  --abaixo: #1F7A52;
+  --abaixo-claro: #E3F2EA;
+  --acima: #A65F0C;
+  --acima-claro: #FAEEDD;
+  --alerta: #B3261E;
+  --alerta-claro: #FBE9E7;
+  --raio: 6px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --fundo: #12181C; --superficie: #1A2228; --texto: #E6ECEF; --texto-2: #9AA8B0; --linha: #2A353C;
+    --placa: #7FAEF2; --placa-claro: #1D2C40; --abaixo: #5CC596; --abaixo-claro: #173126;
+    --acima: #E6A65A; --acima-claro: #3A2A16; --alerta: #F08A80; --alerta-claro: #3A1C1A;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--fundo); color: var(--texto);
+  font: 400 16px/1.5 Barlow, "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+a { color: var(--placa); }
+:focus-visible { outline: 2px solid var(--placa); outline-offset: 2px; }
+.pagina { max-width: 1120px; margin: 0 auto; padding: 0 16px 64px; }
+
+/* Cabeçalho */
+header.topo { padding: 32px 0 20px; border-bottom: 1px solid var(--linha); }
+.topo h1 {
+  font: 700 2.2rem/1.1 "Barlow Semi Condensed", Barlow, sans-serif; margin: 0 0 6px; letter-spacing: -0.01em;
+}
+.topo .buscas { margin: 0; color: var(--texto); font-size: 1.05rem; }
+.topo .buscas span { display: block; }
+.topo .quando { margin: 8px 0 0; color: var(--texto-2); font-size: 0.92rem; }
+.status { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
+.status li {
+  display: flex; align-items: baseline; gap: 6px; padding: 4px 10px; border-radius: 999px;
+  border: 1px solid var(--linha); background: var(--superficie); font-size: 0.9rem;
+}
+.status li b { font-weight: 600; }
+.status li.falha { border-color: var(--alerta); color: var(--alerta); background: var(--alerta-claro); }
+.status li.neutro { color: var(--texto-2); }
+.status-detalhe { margin: 8px 0 0; font-size: 0.88rem; color: var(--texto-2); }
+.status-detalhe p { margin: 2px 0; }
+
+/* Barra de ferramentas */
+.barra {
+  position: sticky; top: 0; z-index: 5; background: var(--fundo);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 0;
+  border-bottom: 1px solid var(--linha);
+}
+.barra .contagem { margin-right: auto; color: var(--texto-2); font-size: 0.95rem; }
+.barra .contagem b { color: var(--texto); font-weight: 600; }
+label.campo { display: flex; flex-direction: column; gap: 2px; font-size: 0.85rem; color: var(--texto-2); }
+select, input[type="number"], input[type="search"] {
+  font: inherit; font-size: 0.95rem; color: var(--texto); background: var(--superficie);
+  border: 1px solid var(--linha); border-radius: var(--raio); padding: 6px 8px; min-height: 36px;
+}
+input[type="number"] { width: 100%; }
+.barra .ordenar { flex-direction: row; align-items: center; gap: 8px; }
+button.botao {
+  font: 500 0.95rem Barlow, sans-serif; color: var(--placa); background: var(--superficie);
+  border: 1px solid var(--placa); border-radius: var(--raio); padding: 6px 14px; min-height: 36px; cursor: pointer;
+}
+button.botao[aria-expanded="true"] { background: var(--placa); color: var(--superficie); }
+button.link { font: inherit; background: none; border: 0; color: var(--placa); padding: 0; cursor: pointer; text-decoration: underline; }
+
+/* Painel de filtros */
+#filtros {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px 16px;
+  padding: 16px 0; border-bottom: 1px solid var(--linha);
+}
+#filtros[hidden] { display: none; }
+#filtros .par { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+#filtros fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+#filtros legend { font-size: 0.85rem; color: var(--texto-2); padding: 0; margin-bottom: 2px; }
+#filtros .marcar { display: flex; flex-direction: column; gap: 2px; font-size: 0.95rem; }
+#filtros .marcar label { display: flex; gap: 6px; align-items: center; }
+#filtros .largo { grid-column: span 2; }
+#filtros .acoes { display: flex; align-items: end; }
+
+/* Lista */
+ol.carros { list-style: none; margin: 0; padding: 0; }
+li.carro {
+  display: grid; grid-template-columns: 220px minmax(0, 1fr) 230px; gap: 20px;
+  padding: 20px 0; border-bottom: 1px solid var(--linha);
+}
+.foto {
+  position: relative; aspect-ratio: 4 / 3; border-radius: var(--raio); overflow: hidden; background: var(--linha);
+}
+.foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.foto .sem-foto { position: absolute; inset: 0; display: grid; place-items: center; color: var(--texto-2); font-size: 0.85rem; }
+.miolo h2 { font: 600 1.25rem/1.2 "Barlow Semi Condensed", Barlow, sans-serif; margin: 0 0 4px; }
+.miolo h2 a { color: var(--texto); text-decoration: none; }
+.miolo h2 a:hover { text-decoration: underline; }
+.dados { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 0 0 8px; color: var(--texto-2); font-size: 0.95rem; }
+.dados span b { color: var(--texto); font-weight: 600; }
+.descricao {
+  margin: 0 0 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  max-width: 68ch;
+}
+.descricao.vazia { color: var(--texto-2); font-style: italic; }
+.selos { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; padding: 0; list-style: none; }
+.selos li { font-size: 0.82rem; padding: 1px 8px; border-radius: 4px; background: var(--placa-claro); color: var(--texto); }
+.alertas {
+  margin: 0 0 10px; padding: 8px 10px; border-left: 3px solid var(--alerta); background: var(--alerta-claro);
+  color: var(--texto); font-size: 0.9rem; border-radius: 0 4px 4px 0;
+}
+.alertas b { color: var(--alerta); }
+.links { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.95rem; }
+.links a { font-weight: 500; }
+.links small { color: var(--texto-2); }
+
+/* Coluna de preço e régua FIPE */
+.preco { text-align: right; }
+.preco .valor { font: 700 1.6rem/1 "Barlow Semi Condensed", Barlow, sans-serif; margin: 0 0 6px; }
+.preco .fipe { margin: 0; color: var(--texto-2); font-size: 0.92rem; }
+.preco .dif { margin: 8px 0 0; font-weight: 600; font-size: 1rem; }
+.preco .dif.abaixo { color: var(--abaixo); }
+.preco .dif.acima { color: var(--acima); }
+.preco .obs { margin: 2px 0 0; font-size: 0.8rem; color: var(--texto-2); }
+.regua { position: relative; height: 26px; margin: 10px 0 0; }
+.regua .trilho {
+  position: absolute; left: 0; right: 0; top: 11px; height: 4px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--abaixo-claro) 0 50%, var(--acima-claro) 50% 100%);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--abaixo) 40%, transparent) 0 50%, color-mix(in srgb, var(--acima) 40%, transparent) 50% 100%);
+}
+.regua .faixa { position: absolute; top: 9px; height: 8px; background: var(--linha); border-radius: 2px; opacity: .9; }
+.regua .fipe-marca { position: absolute; left: 50%; top: 3px; width: 2px; height: 20px; background: var(--texto); transform: translateX(-1px); }
+.regua .ponto {
+  position: absolute; top: 6px; width: 14px; height: 14px; border-radius: 50%; transform: translateX(-7px);
+  border: 2px solid var(--superficie); box-shadow: 0 0 0 1px var(--texto-2);
+}
+.regua .ponto.abaixo { background: var(--abaixo); }
+.regua .ponto.acima { background: var(--acima); }
+.regua .limite { position: absolute; top: 18px; font-size: 0.7rem; color: var(--texto-2); }
+.regua .limite.esq { left: 0; }
+.regua .limite.dir { right: 0; }
+
+.vazio { padding: 48px 0; text-align: center; color: var(--texto-2); }
+.vazio p { margin: 0 0 8px; }
+footer { margin-top: 32px; color: var(--texto-2); font-size: 0.85rem; max-width: 72ch; }
+
+@media (max-width: 860px) {
+  li.carro { grid-template-columns: 160px minmax(0, 1fr); }
+  .preco { grid-column: 1 / -1; text-align: left; display: grid; grid-template-columns: auto 1fr; gap: 0 16px; align-items: end; }
+  .preco .regua { grid-column: 1 / -1; max-width: 420px; }
+}
+@media (max-width: 560px) {
+  .topo { padding-top: 20px; }
+  .topo h1 { font-size: 1.8rem; }
+  li.carro { grid-template-columns: 132px minmax(0, 1fr); grid-template-areas: "foto preco" "miolo miolo"; gap: 12px 14px; padding: 16px 0; }
+  li.carro .foto { grid-area: foto; align-self: start; }
+  li.carro .miolo { grid-area: miolo; }
+  .preco { grid-area: preco; grid-column: auto; display: block; text-align: left; }
+  .preco .valor { font-size: 1.4rem; margin-bottom: 2px; }
+  .preco .dif { margin-top: 4px; font-size: 0.95rem; }
+  .preco .regua { margin-top: 6px; }
+  .miolo h2 { font-size: 1.12rem; }
+  #filtros .largo { grid-column: auto; }
+  .barra { position: static; gap: 8px; }
+  .barra .contagem { width: 100%; margin: 0; }
+  .barra .ordenar { flex: 1; }
+  .barra .ordenar select { flex: 1; min-width: 0; }
+  .rotulo-ordenar { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .regua .ponto { transition: left .25s ease; }
+}
+</style>
+</head>
+<body>
+<div class="pagina">
+  <header class="topo">
+    <h1>Carros encontrados</h1>
+    <p class="buscas" id="buscas"></p>
+    <p class="quando" id="quando"></p>
+    <ul class="status" id="status" aria-label="Resultado da coleta por site"></ul>
+    <div class="status-detalhe" id="status-detalhe"></div>
+  </header>
+
+  <div class="barra" role="region" aria-label="Ordenação e filtros">
+    <p class="contagem" id="contagem" aria-live="polite"></p>
+    <label class="campo ordenar"><span class="rotulo-ordenar">Ordenar por</span>
+      <select id="ordem">
+        <option value="dif_pct:asc">Maior desconto sobre a FIPE</option>
+        <option value="dif_pct:desc">Maior ágio sobre a FIPE</option>
+        <option value="preco:asc">Menor preço</option>
+        <option value="preco:desc">Maior preço</option>
+        <option value="km:asc">Menor quilometragem</option>
+        <option value="km:desc">Maior quilometragem</option>
+        <option value="ano_modelo:desc">Mais novo</option>
+        <option value="ano_modelo:asc">Mais antigo</option>
+      </select>
+    </label>
+    <button class="botao" id="abrir-filtros" aria-expanded="false" aria-controls="filtros">Filtros</button>
+  </div>
+
+  <form id="filtros" hidden>
+    <label class="campo largo">Modelo ou versão
+      <input type="search" id="f-texto" placeholder="Ex.: EXL, Personal, 1.4">
+    </label>
+    <label class="campo" id="campo-busca">Busca
+      <select id="f-busca"></select>
+    </label>
+    <fieldset>
+      <legend>Sites</legend>
+      <div class="marcar" id="f-sites"></div>
+    </fieldset>
+    <fieldset>
+      <legend>Preço (R$)</legend>
+      <div class="par"><input type="number" id="f-preco-min" placeholder="de" min="0" step="1000" aria-label="Preço mínimo"><input type="number" id="f-preco-max" placeholder="até" min="0" step="1000" aria-label="Preço máximo"></div>
+    </fieldset>
+    <fieldset>
+      <legend>Ano-modelo</legend>
+      <div class="par"><input type="number" id="f-ano-de" placeholder="de" aria-label="Ano de"><input type="number" id="f-ano-ate" placeholder="até" aria-label="Ano até"></div>
+    </fieldset>
+    <label class="campo">Km até
+      <input type="number" id="f-km" min="0" step="5000" placeholder="qualquer">
+    </label>
+    <label class="campo">Estado
+      <select id="f-uf"></select>
+    </label>
+    <label class="campo">Cidade
+      <select id="f-cidade"></select>
+    </label>
+    <fieldset>
+      <legend>Alertas</legend>
+      <div class="marcar"><label><input type="checkbox" id="f-alertas"> Esconder anúncios com alerta</label></div>
+    </fieldset>
+    <div class="acoes"><button type="button" class="link" id="limpar">Limpar filtros</button></div>
+  </form>
+
+  <ol class="carros" id="lista"></ol>
+
+  <footer id="rodape"></footer>
+</div>
+
+<script>
+const DADOS = /*__DADOS__*/null;
+
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+  const num = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
+  const pct = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: 'exceptZero' });
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const semAcento = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const CHAVE = 'buscacarros-filtros-v1';
+
+  const carros = DADOS.carros || [];
+  const sites = [...new Set(carros.flatMap((c) => c.links.map((l) => l.site)))].sort();
+
+  // ---------- cabeçalho
+  $('buscas').innerHTML = DADOS.buscas.map((b) => '<span>' + esc(b.rotulo) + '</span>').join('');
+  $('quando').textContent = 'Atualizado em ' + DADOS.gerado_em + (DADOS.referencia_fipe ? '. Tabela FIPE de ' + DADOS.referencia_fipe + '.' : '.');
+  const porSite = {};
+  for (const s of DADOS.status) {
+    const p = porSite[s.site] || (porSite[s.site] = { qtd: 0, falhas: [], estados: new Set() });
+    p.qtd += s.qtd || 0; p.estados.add(s.status);
+    if (s.mensagem) p.falhas.push((DADOS.buscas.length > 1 ? s.busca + ': ' : '') + s.mensagem);
+  }
+  const rot = { ok: '', bloqueado: 'bloqueado', erro: 'com erro', indisponivel: 'indisponível', desativado: 'desligado' };
+  $('status').innerHTML = Object.entries(porSite).map(([site, p]) => {
+    const ok = p.estados.has('ok');
+    const classe = ok ? '' : (p.estados.has('indisponivel') || p.estados.has('desativado') ? 'neutro' : 'falha');
+    const txt = ok ? '<b>' + num.format(p.qtd) + '</b> ' + (p.qtd === 1 ? 'anúncio' : 'anúncios') : rot[[...p.estados][0]] || 'sem dados';
+    return '<li class="' + classe + '">' + esc(site) + ' ' + txt + '</li>';
+  }).join('');
+  $('status-detalhe').innerHTML = Object.entries(porSite).flatMap(([site, p]) => p.falhas.map((f) => '<p>' + esc(site) + ': ' + esc(f) + '</p>')).join('');
+
+  // ---------- opções dos filtros
+  $('f-sites').innerHTML = sites.map((s) => '<label><input type="checkbox" value="' + esc(s) + '" checked> ' + esc(s) + '</label>').join('');
+  if (DADOS.buscas.length > 1) {
+    $('f-busca').innerHTML = '<option value="">Todas</option>' + DADOS.buscas.map((b) => '<option value="' + esc(b.id) + '">' + esc(b.rotulo) + '</option>').join('');
+  } else { $('campo-busca').hidden = true; }
+  const ufs = [...new Set(carros.map((c) => c.uf).filter(Boolean))].sort();
+  $('f-uf').innerHTML = '<option value="">Todos</option>' + ufs.map((u) => '<option>' + esc(u) + '</option>').join('');
+  const preencherCidades = () => {
+    const uf = $('f-uf').value; const atual = $('f-cidade').value;
+    const cs = [...new Set(carros.filter((c) => !uf || c.uf === uf).map((c) => c.cidade).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    $('f-cidade').innerHTML = '<option value="">Todas</option>' + cs.map((c) => '<option>' + esc(c) + '</option>').join('');
+    if (cs.includes(atual)) $('f-cidade').value = atual;
+  };
+  preencherCidades();
+
+  // ---------- estado (lembrado entre aberturas, quando o navegador permite)
+  const campos = ['f-texto', 'f-busca', 'f-preco-min', 'f-preco-max', 'f-ano-de', 'f-ano-ate', 'f-km', 'f-uf', 'f-cidade'];
+  try {
+    const salvo = JSON.parse(localStorage.getItem(CHAVE) || 'null');
+    if (salvo) {
+      campos.forEach((id) => { if (salvo[id] != null && $(id)) $(id).value = salvo[id]; });
+      if (salvo.ordem) $('ordem').value = salvo.ordem;
+      $('f-alertas').checked = !!salvo.alertas;
+      if (Array.isArray(salvo.sitesOff)) document.querySelectorAll('#f-sites input').forEach((i) => { i.checked = !salvo.sitesOff.includes(i.value); });
+      preencherCidades(); if (salvo['f-cidade']) $('f-cidade').value = salvo['f-cidade'];
+    }
+  } catch (e) { /* sem armazenamento */ }
+  const salvar = () => {
+    try {
+      const o = {}; campos.forEach((id) => { o[id] = $(id).value; });
+      o.ordem = $('ordem').value; o.alertas = $('f-alertas').checked;
+      o.sitesOff = [...document.querySelectorAll('#f-sites input')].filter((i) => !i.checked).map((i) => i.value);
+      localStorage.setItem(CHAVE, JSON.stringify(o));
+    } catch (e) { /* sem armazenamento */ }
+  };
+
+  const numero = (id) => { const v = parseFloat($(id).value); return isNaN(v) ? null : v; };
+  const filtrosAtivos = () => {
+    let n = 0;
+    campos.forEach((id) => { if ($(id).value) n++; });
+    if ($('f-alertas').checked) n++;
+    if ([...document.querySelectorAll('#f-sites input')].some((i) => !i.checked)) n++;
+    return n;
+  };
+
+  // ---------- régua FIPE
+  const LIMITE = 30; // a régua vai de -30% a +30% da FIPE
+  const posicao = (p) => 50 + Math.max(-LIMITE, Math.min(LIMITE, p)) / LIMITE * 50;
+  const regua = (c) => {
+    if (c.dif_pct == null || !c.fipe) return '';
+    const lado = c.dif_pct < 0 ? 'abaixo' : 'acima';
+    let faixa = '';
+    if (!c.fipe.exata && c.fipe.min !== c.fipe.max) {
+      const a = posicao((c.fipe.min - c.fipe.valor) / c.fipe.valor * 100), b = posicao((c.fipe.max - c.fipe.valor) / c.fipe.valor * 100);
+      faixa = '<span class="faixa" style="left:' + a + '%;width:' + Math.max(1, b - a) + '%"></span>';
+    }
+    return '<div class="regua" role="img" aria-label="Preço ' + pct.format(c.dif_pct) + '% em relação à FIPE">' +
+      '<span class="trilho"></span>' + faixa + '<span class="fipe-marca"></span>' +
+      '<span class="ponto ' + lado + '" style="left:' + posicao(c.dif_pct) + '%"></span>' +
+      '<span class="limite esq">−30%</span><span class="limite dir">+30%</span></div>';
+  };
+
+  const cartao = (c) => {
+    const titulo = esc(c.titulo_exibicao);
+    const principal = c.links[0];
+    const foto = c.foto
+      ? '<img src="' + esc(c.foto) + '" alt="Foto do ' + titulo + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"><span class="sem-foto" aria-hidden="true">sem foto</span>'
+      : '<span class="sem-foto">sem foto</span>';
+    const dados = [
+      c.ano_modelo ? '<span><b>' + (c.ano_fab && c.ano_fab !== c.ano_modelo ? c.ano_fab + '/' + c.ano_modelo : c.ano_modelo) + '</b></span>' : '',
+      c.km != null ? '<span><b>' + num.format(c.km) + '</b> km</span>' : '',
+      (c.cidade || c.uf) ? '<span>' + esc([c.cidade, c.uf].filter(Boolean).join('/')) + '</span>' : '',
+      c.vendedor ? '<span>' + esc(c.vendedor) + '</span>' : '',
+      c.cambio ? '<span>' + esc(c.cambio) + '</span>' : '',
+      c.cor ? '<span>' + esc(c.cor) + '</span>' : '',
+    ].join('');
+    const desc = c.descricao ? '<p class="descricao">' + esc(c.descricao) + '</p>' : '<p class="descricao vazia">O anúncio não tem descrição.</p>';
+    const selos = c.selos && c.selos.length ? '<ul class="selos">' + c.selos.map((s) => '<li>' + esc(s) + '</li>').join('') + '</ul>' : '';
+    const alertas = c.alertas && c.alertas.length ? '<p class="alertas"><b>Atenção:</b> ' + c.alertas.map(esc).join('; ') + '.</p>' : '';
+    const variosPrecos = new Set(c.links.map((l) => l.preco)).size > 1;
+    const links = '<p class="links">' + c.links.map((l) => '<a href="' + esc(l.url) + '" target="_blank" rel="noopener">Ver no ' + esc(l.site) + '</a>' +
+      (variosPrecos && l.preco ? ' <small>' + brl.format(l.preco) + '</small>' : '')).join('') + '</p>';
+
+    let fipe = '<p class="fipe">FIPE não encontrada para esta versão</p>', dif = '', obs = '';
+    if (c.fipe) {
+      const faixa = !c.fipe.exata && c.fipe.min !== c.fipe.max;
+      fipe = '<p class="fipe">FIPE ' + (faixa ? brl.format(c.fipe.min) + ' a ' + brl.format(c.fipe.max) : brl.format(c.fipe.valor)) + '</p>';
+      const lado = c.dif_pct < 0 ? 'abaixo' : 'acima';
+      dif = '<p class="dif ' + lado + '">' + (faixa ? '≈ ' : '') + pct.format(c.dif_pct) + '% (' + (c.dif_rs < 0 ? '−' : '+') + brl.format(Math.abs(c.dif_rs)) + ')</p>';
+      if (faixa) obs = '<p class="obs">Versão não identificada; comparado à média das versões possíveis</p>';
+      else if (c.fipe.fonte !== 'FIPE') obs = '<p class="obs">FIPE ' + esc(c.fipe.modelo) + '</p>';
+      else if (!c.fipe.exata) obs = '<p class="obs">Versão aproximada</p>';
+    }
+    return '<li class="carro">' +
+      '<a class="foto" href="' + esc(principal.url) + '" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">' + foto + '</a>' +
+      '<div class="miolo"><h2><a href="' + esc(principal.url) + '" target="_blank" rel="noopener">' + titulo + '</a></h2>' +
+      '<p class="dados">' + dados + '</p>' + desc + selos + alertas + links + '</div>' +
+      '<div class="preco"><div><p class="valor">' + brl.format(c.preco) + '</p>' + fipe + '</div><div>' + dif + obs + '</div>' + regua(c) + '</div>' +
+      '</li>';
+  };
+
+  const render = () => {
+    const texto = semAcento($('f-texto').value).trim().split(/\s+/).filter(Boolean);
+    const busca = $('f-busca').value;
+    const sitesOn = new Set([...document.querySelectorAll('#f-sites input')].filter((i) => i.checked).map((i) => i.value));
+    const pmin = numero('f-preco-min'), pmax = numero('f-preco-max'), ade = numero('f-ano-de'), aate = numero('f-ano-ate'), kmax = numero('f-km');
+    const uf = $('f-uf').value, cidade = $('f-cidade').value, semAlerta = $('f-alertas').checked;
+    let lista = carros.filter((c) => {
+      if (busca && c.busca_id !== busca) return false;
+      if (!c.links.some((l) => sitesOn.has(l.site))) return false;
+      if (pmin != null && c.preco < pmin) return false;
+      if (pmax != null && c.preco > pmax) return false;
+      if (ade != null && (c.ano_modelo || 0) < ade) return false;
+      if (aate != null && (c.ano_modelo || 9999) > aate) return false;
+      if (kmax != null && c.km != null && c.km > kmax) return false;
+      if (uf && c.uf !== uf) return false;
+      if (cidade && c.cidade !== cidade) return false;
+      if (semAlerta && c.alertas && c.alertas.length) return false;
+      if (texto.length) { const alvo = semAcento(c.titulo_exibicao + ' ' + (c.versao || '')); if (!texto.every((t) => alvo.includes(t))) return false; }
+      return true;
+    });
+    const [campo, dir] = $('ordem').value.split(':');
+    const sinal = dir === 'asc' ? 1 : -1;
+    lista.sort((a, b) => {
+      const va = a[campo], vb = b[campo];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      return (va - vb) * sinal || (a.preco - b.preco);
+    });
+    $('lista').innerHTML = lista.length ? lista.map(cartao).join('') :
+      '<li class="vazio"><p>Nenhum carro com esses filtros.</p><p><button type="button" class="link" id="limpar-2">Limpar filtros</button></p></li>';
+    const l2 = $('limpar-2'); if (l2) l2.addEventListener('click', limpar);
+    $('contagem').innerHTML = '<b>' + num.format(lista.length) + '</b> de ' + num.format(carros.length) + (carros.length === 1 ? ' carro' : ' carros');
+    const n = filtrosAtivos();
+    $('abrir-filtros').textContent = n ? 'Filtros (' + n + ')' : 'Filtros';
+    salvar();
+  };
+
+  const limpar = () => {
+    campos.forEach((id) => { if (id !== 'f-busca' || $(id).options.length) $(id).value = ''; });
+    $('f-alertas').checked = false;
+    document.querySelectorAll('#f-sites input').forEach((i) => { i.checked = true; });
+    preencherCidades(); render();
+  };
+
+  $('abrir-filtros').addEventListener('click', () => {
+    const aberto = $('filtros').hidden; $('filtros').hidden = !aberto;
+    $('abrir-filtros').setAttribute('aria-expanded', String(aberto));
+  });
+  $('filtros').addEventListener('input', (e) => { if (e.target.id === 'f-uf') preencherCidades(); render(); });
+  $('filtros').addEventListener('submit', (e) => e.preventDefault());
+  $('ordem').addEventListener('change', render);
+  $('limpar').addEventListener('click', limpar);
+  if (window.matchMedia('(min-width: 861px)').matches && filtrosAtivos()) { $('filtros').hidden = false; $('abrir-filtros').setAttribute('aria-expanded', 'true'); }
+
+  $('rodape').innerHTML = '<p>A diferença para a FIPE compara o preço anunciado com a versão e o ano-modelo do anúncio. ' +
+    'Blindagem, opcionais e estado de conservação não entram na tabela FIPE, então carros blindados costumam aparecer acima dela. ' +
+    'Quando o mesmo carro aparece em mais de um site, ele é mostrado uma vez, com o link de cada site.</p>';
+  render();
+})();
+</script>
+</body>
+</html>
