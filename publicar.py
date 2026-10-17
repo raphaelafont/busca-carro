@@ -129,7 +129,7 @@ def publicar(v, repo, sem_testes=False):
     if git('status', '--porcelain'):
         sys.exit('Há mudanças sem commit. Faça commit e push antes de publicar.')
     git('fetch', '-q', 'origin', 'main')
-    if git('rev-parse', 'HEAD') != git('rev-parse', 'origin/main'):
+    if git('rev-parse', 'HEAD') != git('rev-parse', 'FETCH_HEAD'):
         sys.exit('O commit atual não é o que está no GitHub (main). Faça push (ou pull) antes de publicar.')
     if git('ls-remote', '--tags', 'origin', f'refs/tags/v{v}'):
         sys.exit(f'A versão {v} já foi publicada. Aumente __version__ em buscacarros/__init__.py.')
