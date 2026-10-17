@@ -1,0 +1,57 @@
+# Publica uma versão do Busca Carro quando uma tag v<versão> é enviada (python publicar.py cria a tag).
+# Gera o pacote do programa, o atualizacao.json e o instalador, e cria a release. Os PCs instalados leem
+# releases/latest/download/atualizacao.json e se atualizam sozinhos.
+name: Publicar versão
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publicar
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Ferramentas (NSIS, Pillow, requests)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q nsis
+          python -m pip install -q pillow requests
+
+      - name: A tag confere com a versão do programa
+        run: |
+          V=$(python -c "import re; print(re.search(r\"__version__\s*=\s*'([^']+)'\", open('buscacarros/__init__.py', encoding='utf-8').read()).group(1))")
+          echo "Versão do programa: $V; tag: $GITHUB_REF_NAME"
+          test "v$V" = "$GITHUB_REF_NAME"
+          test -s "notas/$V.txt"
+          echo "V=$V" >> "$GITHUB_ENV"
+
+      - name: Testes
+        run: |
+          python testes/teste_memoria.py
+          python testes/teste_atualizacao.py
+
+      - name: Pacote, atualizacao.json e instalador
+        run: python publicar.py --so-gerar
+
+      - name: Release (rascunho, arquivos, e só então pública)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/$V/atualizacao.json" "dist/$V/buscacarros-$V.zip" "dist/$V/BuscaCarro-Instalador.exe" \
+            --title "Busca Carro $V" --notes-file "notas/$V.txt" --draft --verify-tag
+          gh release edit "$GITHUB_REF_NAME" --draft=false --latest

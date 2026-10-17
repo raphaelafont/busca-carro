@@ -28,14 +28,18 @@ começa, ele confere se há versão nova aqui e, se houver, baixa, testa e passa
 ## Publicar uma versão nova
 
 1. Faça a mudança e aumente `__version__` em `buscacarros/__init__.py` (ex.: 1.3.0 → 1.3.1).
-2. `python testes/teste_memoria.py` e `python testes/teste_atualizacao.py`.
-3. Commit e push.
-4. `python publicar.py --notas "O que mudou, em uma ou duas frases"`
+2. Escreva em `notas/<versão>.txt` o que mudou, em uma ou duas frases. O texto aparece no painel de cada
+   pessoa.
+3. Commit e push para `main`.
+4. `python publicar.py --aguardar`
 
-`publicar.py` roda os testes e gera o pacote, o `atualizacao.json` e o instalador completo. Depois cria a
-release `v<versão>` como rascunho, envia os três arquivos e só então a torna pública. Assim os PCs nunca
-veem uma versão pela metade. Precisa de `makensis` (pacote nsis), Pillow e um token do GitHub
-(`GITHUB_TOKEN` ou `gh auth login`).
+`publicar.py` roda os testes, confere que o commit está no GitHub e cria a tag `v<versão>`. A tag dispara
+o GitHub Actions (`.github/workflows/publicar.yml`), que:
+- testa de novo;
+- gera o pacote, o `atualizacao.json` e o instalador completo;
+- cria a release como rascunho, envia os três arquivos e só então a torna pública.
+
+Assim os PCs nunca veem uma versão pela metade.
 
 ## Estrutura
 
@@ -50,5 +54,7 @@ veem uma versão pela metade. Precisa de `makensis` (pacote nsis), Pillow e um t
 - `iniciar.py`: iniciador instalado na raiz da instalação.
 - `instalador/`: `construir.py` (monta o instalador NSIS no Linux), `BuscaCarro.nsi`, ícone e scripts
   do Windows.
+- `notas/`: o que mudou em cada versão.
+- `.github/workflows/publicar.yml`: publicação automática a partir da tag.
 - `testes/`: testes que rodam sem internet.
 - Notas de projeto (decisões e como cada site é lido) ficam fora do repositório, no projeto "Buscador de Carros" do Claude.

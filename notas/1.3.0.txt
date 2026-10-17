@@ -1,0 +1,1 @@
+Atualização automática: a partir desta versão o Busca Carro se atualiza sozinho pela internet. Também guarda o que já leu dos sites e consulta mais devagar, para evitar bloqueios em buscas seguidas.
