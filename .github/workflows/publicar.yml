@@ -1,11 +1,13 @@
-# Publica uma versão do Busca Carro quando uma tag v<versão> é enviada (python publicar.py cria a tag).
-# Gera o pacote do programa, o atualizacao.json e o instalador, e cria a release. Os PCs instalados leem
-# releases/latest/download/atualizacao.json e se atualizam sozinhos.
+# Publica uma versão do Busca Carro quando a versão em buscacarros/__init__.py muda no main.
+# Gera o pacote do programa, o atualizacao.json e o instalador, e cria a release v<versão> (com a tag).
+# Os PCs instalados leem releases/latest/download/atualizacao.json e se atualizam sozinhos.
 name: Publicar versão
 
 on:
   push:
-    tags: ['v*']
+    branches: [main]
+    paths: ['buscacarros/__init__.py']
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -21,37 +23,48 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Versão a publicar
+        id: versao
+        run: |
+          V=$(python3 -c "import re; print(re.search(r\"__version__\\s*=\\s*'([^']+)'\", open('buscacarros/__init__.py', encoding='utf-8').read()).group(1))")
+          echo "Versão do programa: $V"
+          echo "V=$V" >> "$GITHUB_ENV"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$V" > /dev/null; then
+            echo "A versão $V já está publicada; nada a fazer."
+            echo "publicar=nao" >> "$GITHUB_OUTPUT"
+          else
+            test -s "notas/$V.txt" || { echo "Faltam as notas em notas/$V.txt"; exit 1; }
+            echo "publicar=sim" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-python@v5
+        if: steps.versao.outputs.publicar == 'sim'
         with:
           python-version: '3.13'
 
       - name: Ferramentas (NSIS, Pillow, requests)
+        if: steps.versao.outputs.publicar == 'sim'
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q nsis
           python -m pip install -q pillow requests
 
-      - name: A tag confere com a versão do programa
-        run: |
-          V=$(python -c "import re; print(re.search(r\"__version__\s*=\s*'([^']+)'\", open('buscacarros/__init__.py', encoding='utf-8').read()).group(1))")
-          echo "Versão do programa: $V; tag: $GITHUB_REF_NAME"
-          test "v$V" = "$GITHUB_REF_NAME"
-          test -s "notas/$V.txt"
-          echo "V=$V" >> "$GITHUB_ENV"
-
       - name: Testes
+        if: steps.versao.outputs.publicar == 'sim'
         run: |
           python testes/teste_memoria.py
           python testes/teste_atualizacao.py
 
       - name: Pacote, atualizacao.json e instalador
+        if: steps.versao.outputs.publicar == 'sim'
         run: python publicar.py --so-gerar
 
       - name: Release (rascunho, arquivos, e só então pública)
+        if: steps.versao.outputs.publicar == 'sim'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
+          gh release create "v$V" \
             "dist/$V/atualizacao.json" "dist/$V/buscacarros-$V.zip" "dist/$V/BuscaCarro-Instalador.exe" \
-            --title "Busca Carro $V" --notes-file "notas/$V.txt" --draft --verify-tag
-          gh release edit "$GITHUB_REF_NAME" --draft=false --latest
+            --target "$GITHUB_SHA" --title "Busca Carro $V" --notes-file "notas/$V.txt" --draft
+          gh release edit "v$V" --draft=false --latest

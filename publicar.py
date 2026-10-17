@@ -3,12 +3,12 @@
 Passo a passo:
   1. Faça a mudança e aumente __version__ em buscacarros/__init__.py (ex.: 1.3.0 -> 1.3.1).
   2. Escreva em notas/<versão>.txt o que mudou, em uma ou duas frases (aparece no painel de cada pessoa).
-  3. Commit e push para main.
-  4. python publicar.py
+  3. Commit.
+  4. python publicar.py --aguardar
 
-O passo 4 roda os testes, confere que está tudo enviado e cria a tag v<versão>. A tag dispara o GitHub
-Actions (.github/workflows/publicar.yml), que gera o pacote, o atualizacao.json e o instalador e cria a
-release. Os PCs passam a ver a versão nova quando ela fica pronta, nunca pela metade.
+O passo 4 roda os testes e envia o commit para o main. Como a versão mudou, o GitHub Actions
+(.github/workflows/publicar.yml) gera o pacote, o atualizacao.json e o instalador e cria a release
+v<versão>. Os PCs passam a ver a versão nova quando ela fica pronta, nunca pela metade.
 
 Também usado pelo GitHub Actions:
   python publicar.py --so-gerar     gera em dist/<versão>/ os três arquivos da release:
@@ -121,25 +121,20 @@ def so_gerar(v, sem_instalador=False):
     print('Arquivos em', destino)
 
 
-# --------------------------------------------------------------------------- publicação (tag -> GitHub Actions)
+# --------------------------------------------------------------------------- publicação (push -> GitHub Actions)
 def publicar(v, repo, sem_testes=False):
     notas(v)
     if 'DEFINIR' in repo:
         sys.exit('Defina REPOSITORIO em buscacarros/atualizador.py (dono/busca-carro).')
     if git('status', '--porcelain'):
-        sys.exit('Há mudanças sem commit. Faça commit e push antes de publicar.')
-    git('fetch', '-q', 'origin', 'main')
-    if git('rev-parse', 'HEAD') != git('rev-parse', 'FETCH_HEAD'):
-        sys.exit('O commit atual não é o que está no GitHub (main). Faça push (ou pull) antes de publicar.')
+        sys.exit('Há mudanças sem commit. Faça commit antes de publicar.')
     if git('ls-remote', '--tags', 'origin', f'refs/tags/v{v}'):
         sys.exit(f'A versão {v} já foi publicada. Aumente __version__ em buscacarros/__init__.py.')
     if not sem_testes:
         rodar_testes()
-    git('tag', '-a', f'v{v}', '-m', f'Busca Carro {v}')
-    git('push', 'origin', f'v{v}')
-    print(f'Tag v{v} enviada. O GitHub Actions gera e publica a versão em alguns minutos:')
+    git('push', 'origin', 'HEAD:main')
+    print(f'Enviado para o main. O GitHub Actions gera e publica a versão {v} em alguns minutos:')
     print(f'  https://github.com/{repo}/actions')
-    print(f'  https://github.com/{repo}/releases/tag/v{v}')
 
 
 def aguardar(v, repo, limite_s=900):
@@ -165,7 +160,7 @@ def main():
     p.add_argument('--so-gerar', action='store_true', help='só gera os arquivos da release em dist/<versão>/')
     p.add_argument('--sem-instalador', action='store_true', help='com --so-gerar: não gera o instalador')
     p.add_argument('--sem-testes', action='store_true')
-    p.add_argument('--aguardar', action='store_true', help='depois da tag, espera a versão ficar disponível')
+    p.add_argument('--aguardar', action='store_true', help='depois do envio, espera a versão ficar disponível')
     a = p.parse_args()
     v, repo = versao(), repositorio()
     if a.so_gerar:
