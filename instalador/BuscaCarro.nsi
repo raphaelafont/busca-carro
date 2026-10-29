@@ -38,6 +38,7 @@ VIAddVersionKey "LegalCopyright" "Uso pessoal"
 
 !include "MUI2.nsh"
 !include "LogicLib.nsh"
+!include "FileFunc.nsh"
 
 !define MUI_ICON "icone.ico"
 !define MUI_UNICON "icone.ico"
@@ -71,6 +72,85 @@ Function TextoBotaoInstalar
   SendMessage $0 ${WM_SETTEXT} 0 "STR:Instalar"
 FunctionEnd
 
+; Esvazia a pasta de instalação, menos os arquivos da pessoa.
+; Proteção: só age numa pasta chamada BuscaCarro (o instalador aceita /D=<pasta> na linha de comando).
+Function LimparInstalacaoAnterior
+  ${GetFileName} "$INSTDIR" $R0
+  ${If} $R0 != "BuscaCarro"
+    Return
+  ${EndIf}
+  ClearErrors
+  FindFirst $R1 $R2 "$INSTDIR\*"
+  ${DoWhile} $R2 != ""
+    ${If} $R2 == "."
+    ${OrIf} $R2 == ".."
+    ${OrIf} $R2 == "config.ini"
+    ${OrIf} $R2 == "buscas.json"
+    ${OrIf} $R2 == "buscas.xlsx"
+    ${OrIf} $R2 == "dados"
+    ${OrIf} $R2 == "resultados"
+    ${OrIf} $R2 == "logs"
+      ; fica
+    ${ElseIf} ${FileExists} "$INSTDIR\$R2\*.*"
+      RMDir /r "$INSTDIR\$R2"
+    ${Else}
+      Delete "$INSTDIR\$R2"
+    ${EndIf}
+    FindNext $R1 $R2
+  ${Loop}
+  FindClose $R1
+FunctionEnd
+
+; Instalação manual antiga ("Busca Carros" na área de trabalho, com .venv e o código solto):
+; leva o carro, as configurações, os dados e os relatórios, e apaga a pasta.
+; Só mexe na pasta se ela for mesmo do programa antigo.
+Function MigrarPastaManual
+  StrCpy $R0 "$DESKTOP\Busca Carros"
+  ${IfNot} ${FileExists} "$R0\buscacarros\*.*"
+  ${AndIfNot} ${FileExists} "$R0\.venv\*.*"
+  ${AndIfNot} ${FileExists} "$R0\buscas.json"
+    Return
+  ${EndIf}
+
+  nsExec::Exec 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\parar.ps1" "$R0"'
+  Pop $0
+
+  ${IfNot} ${FileExists} "$INSTDIR\buscas.json"
+  ${AndIf} ${FileExists} "$R0\buscas.json"
+    CopyFiles /SILENT "$R0\buscas.json" "$INSTDIR\buscas.json"
+  ${EndIf}
+  ${IfNot} ${FileExists} "$INSTDIR\config.ini"
+  ${AndIf} ${FileExists} "$R0\config.ini"
+    CopyFiles /SILENT "$R0\config.ini" "$INSTDIR\config.ini"
+  ${EndIf}
+  ${IfNot} ${FileExists} "$INSTDIR\dados\*.*"
+  ${AndIf} ${FileExists} "$R0\dados\*.*"
+    CreateDirectory "$INSTDIR\dados"
+    CopyFiles /SILENT "$R0\dados\*.*" "$INSTDIR\dados"
+  ${EndIf}
+  ${IfNot} ${FileExists} "$INSTDIR\resultados\*.*"
+  ${AndIf} ${FileExists} "$R0\resultados\*.*"
+    CreateDirectory "$INSTDIR\resultados"
+    CopyFiles /SILENT "$R0\resultados\*.*" "$INSTDIR\resultados"
+  ${EndIf}
+
+  ; apaga tudo; se este instalador estiver rodando de dentro da pasta, só ele fica (não dá para se apagar)
+  ClearErrors
+  FindFirst $R1 $R2 "$R0\*"
+  ${DoWhile} $R2 != ""
+    ${If} $R2 == "."
+    ${OrIf} $R2 == ".."
+    ${ElseIf} ${FileExists} "$R0\$R2\*.*"
+      RMDir /r "$R0\$R2"
+    ${ElseIf} "$R0\$R2" != "$EXEPATH"
+      Delete "$R0\$R2"
+    ${EndIf}
+    FindNext $R1 $R2
+  ${Loop}
+  FindClose $R1
+  RMDir "$R0"
+FunctionEnd
+
 Section "Instalar"
   SetShellVarContext current
   SetOutPath "$INSTDIR"
@@ -81,25 +161,17 @@ Section "Instalar"
   nsExec::Exec 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\parar.ps1" "$INSTDIR"'
   Pop $0
 
-  ; programa (código antigo é substituído; config.ini, buscas.json e dados do usuário ficam).
-  ; O código fica em versoes\<versão>; as atualizações automáticas acrescentam versões ali.
-  RMDir /r "$INSTDIR\buscacarros"
-  RMDir /r "$INSTDIR\versoes"
-  RMDir /r "$INSTDIR\python"
+  ; Tudo o que instalações anteriores deixaram é apagado (programa, Python, versões guardadas pelas
+  ; atualizações automáticas, arquivos que versões antigas tinham e esta não tem mais).
+  ; Ficam só os arquivos da pessoa: config.ini, buscas.json, dados, resultados e logs.
+  Call LimparInstalacaoAnterior
   File /r "${PAYLOAD}\*.*"
 
-  ; quem já usava a versão manual (pasta "Busca Carros" na área de trabalho) leva o carro e as configurações
-  ${IfNot} ${FileExists} "$INSTDIR\buscas.json"
-    ${If} ${FileExists} "$DESKTOP\Busca Carros\buscas.json"
-      CopyFiles /SILENT "$DESKTOP\Busca Carros\buscas.json" "$INSTDIR\buscas.json"
-    ${EndIf}
-  ${EndIf}
+  ; quem já usava a versão manual (pasta "Busca Carros" na área de trabalho) leva o carro, as
+  ; configurações e os dados; depois a pasta antiga é apagada
+  Call MigrarPastaManual
   ${IfNot} ${FileExists} "$INSTDIR\config.ini"
-    ${If} ${FileExists} "$DESKTOP\Busca Carros\config.ini"
-      CopyFiles /SILENT "$DESKTOP\Busca Carros\config.ini" "$INSTDIR\config.ini"
-    ${Else}
-      CopyFiles /SILENT "$INSTDIR\config.exemplo.ini" "$INSTDIR\config.ini"
-    ${EndIf}
+    CopyFiles /SILENT "$INSTDIR\config.exemplo.ini" "$INSTDIR\config.ini"
   ${EndIf}
 
   ; atalhos (o diretório de trabalho é o $OUTDIR atual)
@@ -111,6 +183,7 @@ Section "Instalar"
   ; atalhos da versão manual antiga
   Delete "$DESKTOP\Busca de carros.lnk"
   Delete "$SMSTARTUP\Busca de carros.lnk"
+  Delete "$SMPROGRAMS\Busca de carros.lnk"
 
   ; checagem diária às 12h (Agendador de Tarefas)
   nsExec::Exec 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$INSTDIR\agendar.ps1"'

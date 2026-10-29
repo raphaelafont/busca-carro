@@ -34,6 +34,9 @@ automática, ele confere se há versão nova; se houver, instala sem você preci
 nada. A versão em uso aparece no topo do painel, com as novidades quando ela muda.
 Para instalar em outro computador, baixe sempre o instalador mais recente em:
 https://github.com/raphaelafont/busca-carro/releases/latest/download/BuscaCarro-Instalador.exe
+Rodar o instalador num computador que já tem o programa apaga tudo o que instalações
+anteriores deixaram (inclusive a pasta "Busca Carros" da área de trabalho, da versão
+antiga). Ficam só o carro buscado, as configurações, os dados, os relatórios e os logs.
 
 
 Buscas seguidas e bloqueios

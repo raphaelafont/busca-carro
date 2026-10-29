@@ -1,0 +1,1 @@
+O instalador agora apaga tudo o que instalações anteriores deixaram no computador (versões antigas do programa, o Python antigo e a pasta "Busca Carros" da área de trabalho, se existir). O carro buscado, as configurações, os dados e os relatórios são mantidos.
