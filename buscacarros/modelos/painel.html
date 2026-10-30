@@ -320,7 +320,7 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
       html = '<p><b>Versão ' + esc(a.versao_ativa) + ' instalada.</b> As próximas buscas já usam a versão nova; feche e abra o painel para ver as mudanças aqui.' + notas(a.notas_instalada) + '</p>';
     } else if (a.situacao === 'precisa_instalador' && a.url_instalador) {
       cls = 'aviso';
-      html = '<p><b>Há uma versão nova (' + esc(a.ultima_versao) + ') que precisa do instalador completo.</b> Baixe e rode o instalador; o carro buscado continua configurado.' + notas(a.notas) + '</p>' +
+      html = '<p><b>Há uma versão nova (' + esc(a.ultima_versao) + ') que precisa do instalador completo.</b> Baixe o instalador, extraia o .zip (botão direito, Extrair tudo) e rode o Instalar.bat; o carro buscado continua configurado.' + notas(a.notas) + '</p>' +
         '<a class="secundario botao-link" href="' + esc(a.url_instalador) + '" target="_blank" rel="noopener">Baixar o instalador</a>';
     } else if (a.instalada === emUso && a.instalada_em && Date.now() / 1000 - a.instalada_em < 3 * 86400 && guardado('bc-visto') !== emUso) {
       html = '<p><b>Atualizado para a versão ' + esc(emUso) + '.</b>' + notas(a.notas_instalada) + '</p><button class="secundario" id="visto-versao">Ok</button>';

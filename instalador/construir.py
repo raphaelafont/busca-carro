@@ -1,12 +1,16 @@
-"""Monta o instalador único do Busca Carro (BuscaCarro-Instalador.exe).
+"""Monta o instalador do Busca Carro (BuscaCarro-Instalador.zip).
 
-Roda em Linux com: python3, pip, makensis (pacote nsis) e Playwright (só para gerar o ícone).
+Por que .zip e não .exe: o Controle Inteligente de Aplicativos do Windows 11 bloqueia qualquer .exe sem
+assinatura digital, sem opção de "Executar assim mesmo". O zip só tem programas assinados (o Python
+oficial, assinado pela PSF) e scripts: a pessoa extrai e roda o Instalar.bat, que chama instalar.py.
+
+Roda em Linux com: python3 e pip (e Playwright só para gerar o ícone, se faltar).
 Passos:
   1. Python 3.13 embutível oficial para Windows (pacote python-embed do PyPI; binários assinados pela PSF).
-  2. Dependências (playwright, openpyxl, requests) baixadas como wheels win_amd64 / cp313.
+  2. Dependências baixadas como wheels win_amd64 / cp313.
   3. Programa em versoes/<versão>/buscacarros + iniciar.py (escolhe a versão ativa e procura atualizações)
-     + ícone + scripts auxiliares.
-  4. makensis gera o .exe.
+     + ícone + instalar.py / desinstalar.py.
+  4. Tudo vai para BuscaCarro-Instalador/ (Instalar.bat, LEIA-ME.txt, programa/) dentro do zip.
 A versão vem de buscacarros/__init__.py. BASE muda só quando o Python ou as dependências mudam: aí as
 atualizações automáticas avisam que é preciso rodar o instalador novo.
 """
@@ -23,12 +27,11 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-from PIL import Image
-
 AQUI = Path(__file__).resolve().parent
 PROJETO = AQUI.parent
 TRABALHO = AQUI / 'construcao'
-PAYLOAD = TRABALHO / 'payload'
+PASTA_ZIP = TRABALHO / 'BuscaCarro-Instalador'
+PAYLOAD = PASTA_ZIP / 'programa'
 SAIDA = AQUI / 'saida'
 VERSAO = re.search(r"__version__\s*=\s*'([^']+)'", (PROJETO / 'buscacarros' / '__init__.py').read_text(encoding='utf-8')).group(1)
 BASE = 1  # geração do Python embutido + dependências (ver atualizacao.json: base_minima)
@@ -98,34 +101,25 @@ def programa():
     (PAYLOAD / 'base.json').write_text(json.dumps({'base': BASE, 'instalador': VERSAO}), encoding='utf-8')
     shutil.copyfile(PROJETO / 'iniciar.py', PAYLOAD / 'iniciar.py')
     shutil.copyfile(PROJETO / 'config.exemplo.ini', PAYLOAD / 'config.exemplo.ini')
-    for nome in ('LEIA-ME.txt', 'agendar.ps1', 'parar.ps1', 'icone.ico'):
+    for nome in ('LEIA-ME.txt', 'icone.ico', 'instalar.py', 'desinstalar.py', 'Desinstalar.bat'):
         shutil.copyfile(AQUI / nome, PAYLOAD / nome)
-
-
-def imagem_lateral():
-    """Imagem 164x314 das páginas de boas-vindas/conclusão do instalador."""
-    w, h = 164, 314
-    img = Image.new('RGB', (w, h))
-    topo, base = (0x21, 0x69, 0xCC), (0x10, 0x3F, 0x86)
-    for y in range(h):
-        t = y / (h - 1)
-        cor = tuple(round(topo[i] + (base[i] - topo[i]) * t) for i in range(3))
-        for x in range(w):
-            img.putpixel((x, y), cor)
-    icone = Image.open(AQUI / 'icone_256.png').convert('RGBA').resize((128, 128), Image.LANCZOS)
-    img.paste(icone, ((w - 128) // 2, 70), icone)
-    img.save(TRABALHO / 'lateral.bmp', format='BMP')
+    for nome in ('Instalar.bat', 'LEIA-ME.txt'):
+        shutil.copyfile(AQUI / nome, PASTA_ZIP / nome)
 
 
 def instalador():
     SAIDA.mkdir(exist_ok=True)
-    for nome in ('BuscaCarro.nsi', 'icone.ico', 'parar.ps1'):
-        shutil.copyfile(AQUI / nome, TRABALHO / nome)
-    exe = SAIDA / 'BuscaCarro-Instalador.exe'
-    rodar(os.environ.get('MAKENSIS', 'makensis'), '-V2', f'-DVERSAO={VERSAO}', '-DPAYLOAD=payload', f'-DSAIDA={exe}', 'BuscaCarro.nsi',
-          cwd=TRABALHO)
-    print(f'Instalador: {exe} ({exe.stat().st_size / 1e6:.1f} MB)')
-    return exe
+    arq = SAIDA / 'BuscaCarro-Instalador.zip'
+    arquivos = sorted(p for p in PASTA_ZIP.rglob('*') if p.is_file())
+    with zipfile.ZipFile(arq, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+        for p in arquivos:
+            info = zipfile.ZipInfo(p.relative_to(TRABALHO).as_posix(), date_time=(2026, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            z.writestr(info, p.read_bytes(), compresslevel=9)
+    maior = max(len(p.relative_to(TRABALHO).as_posix()) for p in arquivos)
+    print(f'Instalador: {arq} ({arq.stat().st_size / 1e6:.1f} MB, {len(arquivos)} arquivos, maior caminho {maior})')
+    return arq
 
 
 def main():
@@ -136,7 +130,6 @@ def main():
     python_embutido()
     dependencias()
     programa()
-    imagem_lateral()
     return instalador()
 
 

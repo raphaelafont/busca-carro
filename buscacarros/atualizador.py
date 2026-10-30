@@ -3,7 +3,7 @@
 As versões são publicadas como "releases" do repositório do Busca Carro no GitHub. Cada uma traz:
   atualizacao.json          versão, nome do pacote, SHA-256, tamanho, base mínima e notas
   buscacarros-<versão>.zip  só o código do programa (o Python e o navegador ficam como estão)
-  BuscaCarro-Instalador.exe instalador completo, para quem ainda não tem o programa
+  BuscaCarro-Instalador.zip instalador completo, para quem ainda não tem o programa
 
 Passos: lê atualizacao.json da versão mais recente; se for mais nova que a instalada, baixa o pacote,
 confere tamanho e SHA-256, extrai em versoes/<versão>, testa se o programa carrega num processo separado
@@ -88,7 +88,7 @@ def url_pacote(info):
 
 
 def url_instalador():
-    return f'{URL_BASE}/{REPOSITORIO}/releases/latest/download/BuscaCarro-Instalador.exe'
+    return f'{URL_BASE}/{REPOSITORIO}/releases/latest/download/BuscaCarro-Instalador.zip'
 
 
 def estado():

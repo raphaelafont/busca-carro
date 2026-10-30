@@ -33,7 +33,11 @@ O Busca Carro se atualiza sozinho pela internet. Ao abrir o painel e antes da bu
 automática, ele confere se há versão nova; se houver, instala sem você precisar fazer
 nada. A versão em uso aparece no topo do painel, com as novidades quando ela muda.
 Para instalar em outro computador, baixe sempre o instalador mais recente em:
-https://github.com/raphaelafont/busca-carro/releases/latest/download/BuscaCarro-Instalador.exe
+https://github.com/raphaelafont/busca-carro/releases/latest/download/BuscaCarro-Instalador.zip
+Clique com o botão direito no arquivo baixado, escolha "Extrair tudo" e, na pasta
+extraída, dê dois cliques em Instalar.bat. Se o Windows perguntar se quer executar,
+clique em Executar. O instalador é um .zip (e não um .exe) porque o Windows 11 bloqueia
+programas .exe sem assinatura digital.
 Rodar o instalador num computador que já tem o programa apaga tudo o que instalações
 anteriores deixaram (inclusive a pasta "Busca Carros" da área de trabalho, da versão
 antiga). Ficam só o carro buscado, as configurações, os dados, os relatórios e os logs.
@@ -68,4 +72,4 @@ buscas.json, config.ini             carro buscado e configurações
 Desinstalar
 -----------
 Configurações do Windows > Aplicativos > Aplicativos instalados > Busca Carro >
-Desinstalar. Ou rode o Desinstalar.exe desta pasta.
+Desinstalar. Ou rode o Desinstalar.bat desta pasta.

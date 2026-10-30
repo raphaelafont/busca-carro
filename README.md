@@ -5,7 +5,11 @@ gera um relatório com filtros e ordenação. Roda no Windows de cada pessoa, so
 ela mandar pelo painel.
 
 **Baixar o instalador (sempre a versão mais recente):**
-https://github.com/raphaelafont/busca-carro/releases/latest/download/BuscaCarro-Instalador.exe
+https://github.com/raphaelafont/busca-carro/releases/latest/download/BuscaCarro-Instalador.zip
+
+Extraia o .zip (botão direito, "Extrair tudo") e dê dois cliques em `Instalar.bat`. O instalador é um .zip
+com o Python oficial (assinado) e scripts, e não um .exe: o Controle Inteligente de Aplicativos do Windows 11
+bloqueia qualquer .exe sem assinatura digital.
 
 Depois de instalado, o programa se atualiza sozinho: a cada vez que o painel abre ou a busca automática
 começa, ele confere se há versão nova aqui e, se houver, baixa, testa e passa a usá-la.
@@ -52,8 +56,9 @@ Assim os PCs nunca veem uma versão pela metade.
   - `fipe.py`, `analise.py`, `relatorio.py`.
   - `atualizador.py`: atualização automática.
 - `iniciar.py`: iniciador instalado na raiz da instalação.
-- `instalador/`: `construir.py` (monta o instalador NSIS no Linux), `BuscaCarro.nsi`, ícone e scripts
-  do Windows.
+- `instalador/`: `construir.py` (monta o BuscaCarro-Instalador.zip no Linux), `Instalar.bat` +
+  `instalar.py` (instala, limpa instalações anteriores, cria atalhos, tarefa e registro), `desinstalar.py`,
+  `Desinstalar.bat`, ícone e LEIA-ME.
 - `notas/`: o que mudou em cada versão.
 - `.github/workflows/publicar.yml`: publicação automática quando a versão muda no `main`.
 - `testes/`: testes que rodam sem internet.

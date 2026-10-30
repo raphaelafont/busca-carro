@@ -1,0 +1,1 @@
+O instalador agora é um arquivo .zip: extraia e dê dois cliques em Instalar.bat. O .exe antigo era bloqueado pelo Windows 11 por não ter assinatura digital. A instalação continua apagando o que versões anteriores deixaram e mantendo o carro, as configurações e os relatórios.

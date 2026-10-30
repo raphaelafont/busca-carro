@@ -14,7 +14,7 @@ Também usado pelo GitHub Actions:
   python publicar.py --so-gerar     gera em dist/<versão>/ os três arquivos da release:
       buscacarros-<versão>.zip   o programa (só a pasta buscacarros)
       atualizacao.json           versão, SHA-256, tamanho, base mínima e notas (lido pelos PCs)
-      BuscaCarro-Instalador.exe  instalador completo (link fixo: .../releases/latest/download/BuscaCarro-Instalador.exe)
+      BuscaCarro-Instalador.zip  instalador completo (link fixo: .../releases/latest/download/BuscaCarro-Instalador.zip)
 """
 import argparse
 import hashlib
@@ -97,9 +97,9 @@ def gerar_manifesto(v, pacote, texto, destino):
 
 def gerar_instalador(destino):
     subprocess.run([sys.executable, str(PROJETO / 'instalador' / 'construir.py')], check=True)
-    exe = PROJETO / 'instalador' / 'saida' / 'BuscaCarro-Instalador.exe'
-    shutil.copyfile(exe, destino / exe.name)
-    return destino / exe.name
+    arq = PROJETO / 'instalador' / 'saida' / 'BuscaCarro-Instalador.zip'
+    shutil.copyfile(arq, destino / arq.name)
+    return destino / arq.name
 
 
 def rodar_testes():
