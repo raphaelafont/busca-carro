@@ -26,6 +26,10 @@ def montar_url(busca):
         p.append(('precoate', str(busca['preco_max'])))
     if busca['km_max']:
         p.append(('kmate', str(busca['km_max'])))
+    if busca.get('vendedor') == 'particular':
+        p.append(('anunciante', 'Pessoa Física'))
+    elif busca.get('vendedor') == 'loja':
+        p.append(('anunciante', 'Loja|Concessionária'))
     if busca['blindado'] is True:
         p.append(('blindado', 'Com blindagem'))
     elif busca['blindado'] is False:

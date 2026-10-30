@@ -18,8 +18,9 @@ from urllib.parse import parse_qs, urlparse
 
 import requests
 
-from . import __version__, agenda, atualizador, progresso
-from .configuracao import RAIZ, ErroConfig, definir_busca, excluir_busca, ler_config, ler_lista, normalizar_busca
+from . import __version__, agenda, atualizador, historico, progresso
+from .configuracao import (RAIZ, SITES_ESCOLHA, ErroConfig, definir_busca, excluir_busca, ler_config, ler_lista,
+                           normalizar_busca)
 from .fipe import Fipe
 
 DADOS = RAIZ / 'dados'
@@ -27,6 +28,7 @@ RESULTADOS = RAIZ / 'resultados'
 ARQ_PROGRESSO = DADOS / 'progresso.jsonl'
 ARQ_PAINEL = DADOS / 'painel.json'
 SAIDA_FILHO = DADOS / 'painel_ultima_saida.txt'
+PEDIDO_PARADA = DADOS / 'parar.pedido'  # lido pela busca em andamento (principal.parada_pedida)
 PAGINA = Path(__file__).parent / 'modelos' / 'painel.html'
 OCIOSO_S = 600
 log = logging.getLogger('buscacarros.painel')
@@ -96,11 +98,23 @@ def iniciar_rodada():
     return True, 'Busca iniciada.'
 
 
+def parar_e_gerar():
+    """Pede para a busca em andamento parar no ponto em que está e gerar o relatório com o que já leu."""
+    if not rodada_atual():
+        return False, 'Nenhuma busca em andamento.'
+    PEDIDO_PARADA.write_text(str(time.time()), encoding='utf-8')
+    return True, 'Parando: a busca termina o que está lendo e gera o relatório.'
+
+
 def parar_rodada():
     info = rodada_atual()
     if not info:
         return False, 'Nenhuma busca em andamento.'
     agenda.encerrar_processo(info['pid'])
+    try:
+        PEDIDO_PARADA.unlink()
+    except FileNotFoundError:
+        pass
     try:
         (DADOS / 'execucao.lock').unlink()
     except FileNotFoundError:
@@ -141,6 +155,8 @@ def estado_geral():
     return {
         'buscas': ler_lista(),
         'rodando': rodada_atual(),
+        'parando': PEDIDO_PARADA.exists(),
+        'sites_disponiveis': [{'chave': k, 'nome': n} for k, n in SITES_ESCOLHA.items()],
         'ultima': ultima,
         'proxima': proxima,
         'intervalo_dias': cfg['execucao']['intervalo_dias'] if cfg else 2,
@@ -252,6 +268,13 @@ class Manipulador(BaseHTTPRequestHandler):
                 return self._arquivo(RAIZ / 'icone.ico', 'image/x-icon')
             if url.path == '/relatorio':
                 return self._arquivo(RESULTADOS / 'ultimo_relatorio.html')
+            if url.path == '/api/historico':
+                return self._json(200, {'historico': historico.listar(RESULTADOS, DADOS)})
+            if url.path.startswith('/relatorios/'):
+                arq = historico.caminho_relatorio(RESULTADOS, url.path.rsplit('/', 1)[1])
+                if arq:
+                    return self._arquivo(arq)
+                return self._json(404, {'erro': 'Relatório não encontrado (os 30 mais recentes ficam guardados).'})
             return self._json(404, {'erro': 'Página não encontrada.'})
         except ErroConfig as e:
             return self._json(400, {'erro': str(e)})
@@ -277,6 +300,9 @@ class Manipulador(BaseHTTPRequestHandler):
                                         'buscas': ler_lista()})
             if url.path == '/api/rodar':
                 ok, msg = iniciar_rodada()
+                return self._json(200 if ok else 409, {'ok': ok, 'msg': msg})
+            if url.path == '/api/parar-e-gerar':
+                ok, msg = parar_e_gerar()
                 return self._json(200 if ok else 409, {'ok': ok, 'msg': msg})
             if url.path == '/api/parar':
                 ok, msg = parar_rodada()

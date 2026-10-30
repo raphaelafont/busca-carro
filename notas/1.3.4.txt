@@ -1,0 +1,1 @@
+Novidades: dois sites novos (Seminovos BH e NaPista); no carro buscado, escolha dos sites e do vendedor (qualquer, só particulares ou só lojas); botão "Parar e gerar relatório", que encerra a busca e gera o relatório com o que já foi coletado; e a lista "Buscas anteriores", com o resumo de cada busca, a data e a hora em que terminou e o relatório dela.

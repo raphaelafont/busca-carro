@@ -113,6 +113,9 @@ def passa_filtros(item, busca):
         return False
     if busca['combustivel'] and item.get('combustivel_tipo') and item['combustivel_tipo'] != busca['combustivel']:
         return False
+    if busca.get('vendedor') and item.get('vendedor'):
+        if (item['vendedor'] == 'Particular') != (busca['vendedor'] == 'particular'):
+            return False
     if busca['blindado'] is True and item.get('blindado') is not True:
         return False
     if busca['blindado'] is False and item.get('blindado') is True:

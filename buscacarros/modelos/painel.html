@@ -93,6 +93,22 @@ fieldset.escolha legend { font-size: 0.88rem; color: var(--texto-2); padding: 0;
 .msg-form.erro { background: var(--erro-claro); color: var(--erro); }
 .msg-form.aviso { background: var(--aviso-claro); color: var(--texto); border-left: 3px solid var(--aviso); }
 
+.marcar-sites { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 4px 0; }
+.marcar-sites label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.95rem; color: var(--texto); cursor: pointer; }
+.marcar-sites input { width: 18px; height: 18px; min-height: 0; margin: 0; accent-color: var(--placa); }
+
+/* Buscas anteriores */
+section.historico { margin-top: 32px; }
+ul.historico { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--linha); }
+ul.historico li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 12px 0; border-bottom: 1px solid var(--linha); align-items: start; }
+.historico .quando { font-weight: 600; }
+.historico .selo { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 3px; font-size: 0.8rem; font-weight: 600; background: var(--aviso-claro); color: var(--aviso); vertical-align: 1px; }
+.historico .oque { grid-column: 1; margin: 2px 0 0; font-size: 0.95rem; }
+.historico .numeros, .historico .sites-h { grid-column: 1; margin: 2px 0 0; font-size: 0.88rem; color: var(--texto-2); }
+.historico .abrir { grid-column: 2; grid-row: 1 / span 4; align-self: center; }
+.historico-vazio { color: var(--texto-2); padding: 12px 0; border-top: 1px solid var(--linha); margin: 0; }
+#mais-historico { margin-top: 10px; }
+
 /* Rodada */
 section.rodada { background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--raio); padding: 20px; position: sticky; top: 16px; }
 .acoes-rodada { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 4px 0 14px; }
@@ -219,6 +235,18 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
               <label><input type="radio" name="blindado" value="nao"> Sem blindagem</label>
             </div>
           </fieldset>
+          <fieldset class="escolha campo c6">
+            <legend>Sites onde buscar</legend>
+            <div class="marcar-sites" id="f-sites-busca"></div>
+          </fieldset>
+          <fieldset class="escolha campo c6">
+            <legend>Vendedor</legend>
+            <div class="botoes-escolha">
+              <label><input type="radio" name="vendedor" value="" checked> Qualquer</label>
+              <label><input type="radio" name="vendedor" value="particular"> Só particulares</label>
+              <label><input type="radio" name="vendedor" value="loja"> Só lojas</label>
+            </div>
+          </fieldset>
         </div>
         <p class="msg-form" id="msg-form" hidden></p>
         <div class="form-acoes">
@@ -239,13 +267,21 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
       </div>
     </section>
 
+    <section class="historico" aria-labelledby="t-historico">
+      <div class="cabeca"><h2 id="t-historico">Buscas anteriores</h2></div>
+      <ul class="historico" id="historico"></ul>
+      <p class="historico-vazio" id="historico-vazio" hidden>Nenhuma busca terminou ainda. Cada busca concluída aparece aqui, com o relatório dela.</p>
+      <button class="secundario" id="mais-historico" hidden>Mostrar todas</button>
+    </section>
+
     </div>
 
     <section class="rodada" aria-labelledby="t-rodada">
       <h2 id="t-rodada">Busca</h2>
       <div class="acoes-rodada">
         <button class="primario grande" id="rodar">Rodar a busca</button>
-        <button class="secundario" id="parar" hidden>Parar busca</button>
+        <button class="secundario" id="parar-gerar" hidden>Parar e gerar relatório</button>
+        <button class="discreto" id="parar" hidden>Cancelar busca</button>
         <button class="secundario" id="ver-relatorio" hidden>Abrir relatório</button>
       </div>
       <div aria-live="polite">
@@ -394,11 +430,12 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
   function dadosForm() {
     const radio = (n) => (document.querySelector('input[name="' + n + '"]:checked') || {}).value || '';
     const bl = radio('blindado');
-    return { marca: $('f-marca').value, modelo: $('f-modelo').value, versao: $('f-versao').value, ano_de: $('f-ano-de').value, ano_ate: $('f-ano-ate').value, km_max: $('f-km').value, uf: $('f-uf').value, cidade: $('f-cidade').value, preco_max: $('f-preco').value, cambio: radio('cambio'), combustivel: $('f-comb').value, blindado: bl === 'sim' ? true : (bl === 'nao' ? false : null) };
+    return { marca: $('f-marca').value, modelo: $('f-modelo').value, versao: $('f-versao').value, ano_de: $('f-ano-de').value, ano_ate: $('f-ano-ate').value, km_max: $('f-km').value, uf: $('f-uf').value, cidade: $('f-cidade').value, preco_max: $('f-preco').value, cambio: radio('cambio'), combustivel: $('f-comb').value, blindado: bl === 'sim' ? true : (bl === 'nao' ? false : null), vendedor: radio('vendedor'), sites: [...document.querySelectorAll('#f-sites-busca input:checked')].map((i) => i.value) };
   }
   async function salvar(forcar) {
     const d = dadosForm();
     if (!d.marca.trim() || !d.modelo.trim()) { msgForm('Informe a marca e o modelo.'); return; }
+    if (!d.sites.length) { msgForm('Marque pelo menos um site.'); return; }
     $('salvar').disabled = true; $('salvar').textContent = 'Conferindo na FIPE…';
     const r = await api('POST', '/api/buscas', { ...d, forcar: !!forcar });
     $('salvar').disabled = false; $('salvar').textContent = 'Salvar carro';
@@ -415,12 +452,55 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
   $('nova').addEventListener('submit', (e) => { e.preventDefault(); salvar(false); });
   $('forcar').addEventListener('click', () => salvar(true));
 
+  // ------------------------------------------------------------------ sites do formulário
+  let sitesDesenhados = '';
+  function renderSitesForm() {
+    const lista = (estado && estado.sites_disponiveis) || [];
+    const ass = JSON.stringify(lista);
+    if (ass === sitesDesenhados) return;
+    sitesDesenhados = ass;
+    $('f-sites-busca').innerHTML = lista.map((s) => '<label><input type="checkbox" value="' + esc(s.chave) + '" checked> ' + esc(s.nome) + '</label>').join('');
+  }
+
+  // ------------------------------------------------------------------ buscas anteriores
+  let historico = [], historicoTudo = false;
+  const MOSTRAR_HISTORICO = 8;
+  const ROT_SITE = { ok: '', bloqueado: 'bloqueado', erro: 'erro', indisponivel: 'indisponível', desativado: 'desligado', interrompido: 'parado' };
+  function quando(iso) {
+    const d = new Date(iso);
+    if (isNaN(d)) return iso || '';
+    return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+  function renderHistorico() {
+    const itens = historicoTudo ? historico : historico.slice(0, MOSTRAR_HISTORICO);
+    $('historico-vazio').hidden = historico.length > 0;
+    $('mais-historico').hidden = historico.length <= MOSTRAR_HISTORICO;
+    $('mais-historico').textContent = historicoTudo ? 'Mostrar menos' : 'Mostrar todas (' + historico.length + ')';
+    $('historico').innerHTML = itens.map((h) => {
+      const oque = (h.buscas || []).map((b) => (b.titulo ? '<b>' + esc(b.titulo) + '</b>' + (b.detalhes ? ', ' : '') : '') + esc(b.detalhes || '')).join('<br>');
+      const nums = h.carros == null ? '' : num.format(h.carros) + (h.carros === 1 ? ' carro' : ' carros') + (h.abaixo_fipe ? ', ' + num.format(h.abaixo_fipe) + ' abaixo da FIPE' : '');
+      const sites = (h.sites || []).map((s) => esc(s.site) + ' ' + (s.status === 'ok' ? num.format(s.qtd) : (ROT_SITE[s.status] || s.status))).join(' · ');
+      return '<li><span class="quando">' + esc(quando(h.fim)) + (h.parcial ? '<span class="selo">parada no meio</span>' : '') + '</span>' +
+        '<a class="secundario botao-link abrir" href="/relatorios/' + encodeURIComponent(h.arquivo) + '" target="_blank" rel="noopener">Abrir relatório</a>' +
+        (oque ? '<p class="oque">' + oque + '</p>' : '') + (nums ? '<p class="numeros">' + nums + '</p>' : '') +
+        (sites ? '<p class="sites-h">' + sites + '</p>' : '') + '</li>';
+    }).join('');
+  }
+  async function carregarHistorico() {
+    try { historico = (await fetch('/api/historico').then((r) => r.json())).historico || []; } catch (e) { return; }
+    renderHistorico();
+  }
+  $('mais-historico').addEventListener('click', () => { historicoTudo = !historicoTudo; renderHistorico(); });
+
   // ------------------------------------------------------------------ rodada: botões
   function renderBotoes() {
     const rodando = !!(estado && estado.rodando);
     $('rodar').disabled = rodando || !estado.buscas.length;
     $('rodar').textContent = rodando ? 'Busca em andamento' : 'Rodar a busca';
     $('parar').hidden = !rodando;
+    $('parar-gerar').hidden = !rodando;
+    $('parar-gerar').disabled = !!(estado && estado.parando);
+    $('parar-gerar').textContent = estado && estado.parando ? 'Parando…' : 'Parar e gerar relatório';
     $('rodar').title = estado.buscas.length ? '' : 'Escolha um carro primeiro';
   }
   $('rodar').addEventListener('click', async () => {
@@ -433,12 +513,18 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
   $('parar').addEventListener('click', async () => {
     if (!$('parar').classList.contains('perigo')) {
       $('parar').classList.add('perigo'); $('parar').textContent = 'Confirmar: parar agora';
-      setTimeout(() => { $('parar').classList.remove('perigo'); $('parar').textContent = 'Parar busca'; }, 4000);
+      setTimeout(() => { $('parar').classList.remove('perigo'); $('parar').textContent = 'Cancelar busca'; }, 4000);
       return;
     }
     $('parar').disabled = true;
     const r = await api('POST', '/api/parar');
-    $('parar').disabled = false; $('parar').classList.remove('perigo'); $('parar').textContent = 'Parar busca';
+    $('parar').disabled = false; $('parar').classList.remove('perigo'); $('parar').textContent = 'Cancelar busca';
+    toast(r.msg || r.erro || '');
+    ciclo(true);
+  });
+  $('parar-gerar').addEventListener('click', async () => {
+    $('parar-gerar').disabled = true;
+    const r = await api('POST', '/api/parar-e-gerar');
     toast(r.msg || r.erro || '');
     ciclo(true);
   });
@@ -471,7 +557,7 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
   function concluirAtual() {
     if (prog.atual && prog.atual.estado === 'rodando') { prog.atual.estado = 'ok'; prog.atual.agora = ''; }
   }
-  const ROTULO_STATUS = { bloqueado: 'bloqueado', erro: 'erro', indisponivel: 'indisponível', desativado: 'desligado' };
+  const ROTULO_STATUS = { bloqueado: 'bloqueado', erro: 'erro', indisponivel: 'indisponível', desativado: 'desligado', interrompido: 'parado' };
   function aplicar(ev) {
     if (ev.tipo === 'inicio') { novaRodada(ev); addLog(ev.ts, 'Busca ' + (ORIGEM[ev.origem] || 'iniciada') + '.', 'etapa'); return; }
     if (!prog) return;
@@ -487,7 +573,7 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
       const it = prog.porChave[ev.chave];
       if (it) {
         const ok = ev.status === 'ok';
-        it.estado = ok ? 'ok' : (ev.status === 'indisponivel' || ev.status === 'desativado' ? 'neutra' : 'falha');
+        it.estado = ok ? 'ok' : (['indisponivel', 'desativado', 'interrompido'].includes(ev.status) ? 'neutra' : 'falha');
         it.resultado = ok ? num.format(ev.qtd) + (ev.qtd === 1 ? ' anúncio' : ' anúncios') : (ROTULO_STATUS[ev.status] || ev.status);
         it.obs = ev.msg || ''; it.agora = '';
       }
@@ -498,7 +584,8 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
       if (ev.status === 'ok') concluirAtual();
       else if (prog.atual && prog.atual.estado === 'rodando') { prog.atual.estado = 'falha'; prog.atual.agora = ''; }
       prog.fim = ev;
-      addLog(ev.ts, ev.status === 'ok' ? 'Busca concluída.' : (ev.msg || 'Busca encerrada com erro.'), ev.status === 'ok' ? 'fim' : 'error');
+      addLog(ev.ts, ev.status === 'ok' ? (ev.parcial ? 'Busca parada; relatório gerado com o que foi coletado.' : 'Busca concluída.') : (ev.msg || 'Busca encerrada com erro.'), ev.status === 'ok' ? 'fim' : 'error');
+      carregarHistorico();
     }
   }
   function duracao(s) { s = Math.max(0, Math.round(s)); const m = Math.floor(s / 60), r = s % 60; return m ? m + ' min ' + String(r).padStart(2, '0') + ' s' : r + ' s'; }
@@ -531,7 +618,10 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
     if (prog.fim) {
       const f = prog.fim;
       const dur = duracao(f.ts - prog.ts0);
-      if (f.status === 'ok') {
+      if (f.status === 'ok' && f.parcial) {
+        est.className = 'estado aviso'; est.textContent = 'Busca parada depois de ' + dur + '.';
+        sub.textContent = 'O relatório tem o que foi coletado até ali: ' + num.format(f.carros) + (f.carros === 1 ? ' carro' : ' carros') + ', ' + num.format(f.abaixo_fipe) + ' abaixo da FIPE. Terminou às ' + hora(f.ts) + '.';
+      } else if (f.status === 'ok') {
         est.className = 'estado ok'; est.textContent = 'Busca concluída em ' + dur + '.';
         sub.textContent = num.format(f.carros) + (f.carros === 1 ? ' carro encontrado' : ' carros encontrados') + ', ' + num.format(f.abaixo_fipe) + ' abaixo da FIPE. Terminou às ' + hora(f.ts) + '.';
       } else if (f.status === 'interrompida') {
@@ -541,7 +631,7 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
       }
       $('ver-relatorio').hidden = !(f.status === 'ok' && estado && estado.tem_relatorio);
     } else if (rodando) {
-      est.className = 'estado'; est.textContent = 'Buscando… ' + pct + '%';
+      est.className = 'estado'; est.textContent = (estado.parando ? 'Parando… ' : 'Buscando… ') + pct + '%';
       sub.textContent = 'Rodando há ' + duracao(agora - prog.ts0) + ', ' + (ORIGEM[prog.inicio.origem] || '') + '. Pode fechar esta página: a busca continua e o relatório fica pronto do mesmo jeito.';
       $('ver-relatorio').hidden = true;
     } else {
@@ -587,7 +677,7 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
       }
       if (esperandoInicio && Date.now() - esperandoInicio > 60000) esperandoInicio = 0;
       renderTopo(); renderBotoes(); renderProgresso();
-      renderLista();
+      renderLista(); renderSitesForm();
     } catch (err) {
       $('estado').className = 'estado erro'; $('estado').textContent = 'O painel perdeu a conexão com o programa.';
       $('sub-estado').textContent = 'Abra de novo pelo ícone "Busca Carro" na área de trabalho.';
@@ -599,6 +689,7 @@ details.registro summary { cursor: pointer; color: var(--texto-2); font-size: 0.
   }
   setInterval(() => { if (prog && !prog.fim && estado && estado.rodando) renderProgresso(); }, 1000);
   ciclo(true);
+  carregarHistorico();
 })();
 </script>
 </body>

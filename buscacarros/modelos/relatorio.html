@@ -281,10 +281,10 @@ const DADOS = /*__DADOS__*/null;
     p.qtd += s.qtd || 0; p.estados.add(s.status);
     if (s.mensagem) p.falhas.push((DADOS.buscas.length > 1 ? s.busca + ': ' : '') + s.mensagem);
   }
-  const rot = { ok: '', bloqueado: 'bloqueado', erro: 'com erro', indisponivel: 'indisponível', desativado: 'desligado' };
+  const rot = { ok: '', bloqueado: 'bloqueado', erro: 'com erro', indisponivel: 'indisponível', desativado: 'desligado', interrompido: 'não consultado (busca parada)' };
   $('status').innerHTML = Object.entries(porSite).map(([site, p]) => {
     const ok = p.estados.has('ok');
-    const classe = ok ? '' : (p.estados.has('indisponivel') || p.estados.has('desativado') ? 'neutro' : 'falha');
+    const classe = ok ? '' : (p.estados.has('indisponivel') || p.estados.has('desativado') || p.estados.has('interrompido') ? 'neutro' : 'falha');
     const txt = ok ? '<b>' + num.format(p.qtd) + '</b> ' + (p.qtd === 1 ? 'anúncio' : 'anúncios') : rot[[...p.estados][0]] || 'sem dados';
     return '<li class="' + classe + '">' + esc(site) + ' ' + txt + '</li>';
   }).join('');

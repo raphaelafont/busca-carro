@@ -9,8 +9,8 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 
-from . import agenda, analise, progresso, relatorio
-from .configuracao import RAIZ, ErroConfig, ler_buscas, ler_config
+from . import agenda, analise, historico, progresso, relatorio
+from .configuracao import RAIZ, ErroConfig, busca_no_site, ler_buscas, ler_config
 from .fipe import Fipe, tokens
 from .memoria import CALMO_SE_USADO_HA_MIN, Memoria
 
@@ -18,6 +18,7 @@ DADOS = RAIZ / 'dados'
 RESULTADOS = RAIZ / 'resultados'
 LOGS = RAIZ / 'logs'
 ARQ_PROGRESSO = DADOS / 'progresso.jsonl'
+PEDIDO_PARADA = DADOS / 'parar.pedido'  # criado pelo painel no botão "Parar e gerar relatório"
 log = logging.getLogger('buscacarros')
 FORMATO = logging.Formatter('%(asctime)s %(levelname)s %(message)s', '%H:%M:%S')
 
@@ -60,6 +61,17 @@ def anotar_checagem(texto):
         pass
 
 
+def parada_pedida():
+    return PEDIDO_PARADA.exists()
+
+
+def limpar_pedido_parada():
+    try:
+        PEDIDO_PARADA.unlink()
+    except OSError:
+        pass
+
+
 def limpar_antigos(pasta: Path, padrao: str, manter: int):
     for a in sorted(pasta.glob(padrao))[:-manter]:
         try:
@@ -77,7 +89,7 @@ def _ler_site(nav, mod, busca, cfg, mem):
         progresso.detalhe(f'{mod.NOME} {motivo}; consultando mais devagar para não ser bloqueado')
     try:
         r = mod.buscar(nav, busca, cfg['limites'], mem)
-        if r['status'] == 'bloqueado' and nav.pode_abrir_janela():
+        if r['status'] == 'bloqueado' and nav.pode_abrir_janela() and not parada_pedida():
             # segunda tentativa, depois de uma pausa, com o navegador em janela (fora da tela),
             # que passa mais nas verificações; tentar na hora só reforça o bloqueio
             progresso.detalhe('Bloqueado; aguardando 1 minuto e tentando de novo, devagar, com o navegador em janela')
@@ -88,6 +100,13 @@ def _ler_site(nav, mod, busca, cfg, mem):
     except Exception as e:
         log.error('%s falhou: %s\n%s', mod.NOME, e, traceback.format_exc())
         r = {'status': 'erro', 'mensagem': f'Erro inesperado: {str(e).splitlines()[0][:200]}', 'items': []}
+    if parada_pedida():
+        # leitura cortada no meio: fica o que já foi lido, e ela não é reaproveitada numa próxima busca
+        qtd = len(r.get('items', []))
+        r['status'] = 'ok' if qtd else 'interrompido'
+        r['mensagem'] = f'parado no meio pela pessoa ({qtd} anúncios lidos até ali)' if qtd else 'parado pela pessoa'
+        mem.registrar_uso(mod.NOME, nav.ritmo['limitacoes'] > 0)
+        return r
     limitou = r['status'] == 'bloqueado' or nav.ritmo['limitacoes'] > 0
     if mod.NOME != 'iCarros':
         mem.registrar_uso(mod.NOME, limitou)
@@ -108,13 +127,21 @@ def coletar(cfg, buscas, reaproveitar=True, interativo=False):
                           'os sites mais devagar, para não ser bloqueado')
     with Navegador(DADOS / 'perfil_navegador', mostrar=cfg['execucao']['mostrar_navegador']) as nav:
         nav.pode_pedir_ajuda = interativo  # rodada pelo painel: a pessoa pode resolver uma verificação do site
+        nav.deve_parar = parada_pedida
         for nb, busca in enumerate(buscas, 1):
             for chave, mod in SITES.items():
+                if not busca_no_site(busca, chave):
+                    continue
                 if not cfg['sites'].get(chave, True):
                     resultados.append({'busca_id': busca['id'], 'site': mod.NOME, 'status': 'desativado',
                                        'mensagem': 'desligado no config.ini', 'items': []})
                     continue
                 id_etapa = f"{busca['id']}:{chave}"
+                if parada_pedida():
+                    progresso.site(busca['id'], mod.NOME, 'interrompido', 0, 'não consultado: a busca foi parada', chave=id_etapa)
+                    resultados.append({'busca_id': busca['id'], 'site': mod.NOME, 'status': 'interrompido',
+                                       'mensagem': 'não consultado: a busca foi parada', 'items': []})
+                    continue
                 progresso.etapa(f"{mod.NOME}: abrindo o site para {busca['titulo']}", chave=id_etapa)
                 inicio = time.time()
                 recente = mem.leitura_recente(mod.NOME, busca)
@@ -182,13 +209,15 @@ def processar(coleta, cfg, fipe):
 # --------------------------------------------------------------------------- execução
 def rodada(args, cfg, buscas):
     """Uma rodada completa, já com a trava adquirida."""
+    from .sites import SITES
     t0 = time.time()
-    n_sites = sum(1 for v in cfg['sites'].values() if v)
+    limpar_pedido_parada()
+    sites_rodada = [(k, m) for k, m in SITES.items()
+                    if cfg['sites'].get(k, True) and any(busca_no_site(b, k) for b in buscas)]
+    n_sites = len(sites_rodada)
     progresso.iniciar(ARQ_PROGRESSO, origem=args.origem,
                       buscas=[{'id': b['id'], 'titulo': b['titulo'], 'detalhes': b['detalhes']} for b in buscas],
-                      sites=[{'chave': k, 'nome': n} for k, n in (('webmotors', 'Webmotors'), ('olx', 'OLX'),
-                                                                  ('mercadolivre', 'Mercado Livre'), ('icarros', 'iCarros'))
-                             if cfg['sites'].get(k, True)],
+                      sites=[{'chave': k, 'nome': m.NOME} for k, m in sites_rodada],
                       etapas=len(buscas) * n_sites + 2)
     log.info('Rodada iniciada (%s): %d %s.', args.origem, len(buscas), 'busca' if len(buscas) == 1 else 'buscas')
 
@@ -217,13 +246,19 @@ def rodada(args, cfg, buscas):
 
     abaixo = sum(1 for c in carros if c.get('dif_pct') is not None and c['dif_pct'] < 0)
     algum_ok = any(s['status'] == 'ok' for s in dados['status'])
+    parcial = parada_pedida() or any(s['status'] == 'interrompido' for s in dados['status'])
     resumo = {'carros': len(carros), 'abaixo_fipe': abaixo, 'relatorio': destino.name,
-              'duracao_s': round(time.time() - t0), 'origem': args.origem,
+              'duracao_s': round(time.time() - t0), 'origem': args.origem, 'parcial': parcial,
               'sites': {s['site']: {'status': s['status'], 'qtd': s['qtd']} for s in dados['status']}}
-    if not args.reprocessar and algum_ok:
+    if not args.reprocessar and algum_ok and not parcial:  # busca parada no meio não conta como a rodada dos 2 dias
         agenda.registrar(DADOS, resumo)
-    progresso.fim('ok' if algum_ok else 'erro', **resumo,
-                  msg=None if algum_ok else 'Nenhum site respondeu; confira o registro abaixo.')
+    historico.registrar(RESULTADOS, DADOS, destino, coleta['buscas'], dados, resumo)
+    if parcial:
+        msg = 'Busca parada antes do fim; o relatório tem o que foi coletado até ali.'
+    else:
+        msg = None if algum_ok else 'Nenhum site respondeu; confira o registro abaixo.'
+    progresso.fim('ok' if (algum_ok or parcial) else 'erro', **resumo, msg=msg)
+    limpar_pedido_parada()
     limpar_antigos(RESULTADOS, 'relatorio_*.html', 30)
     limpar_antigos(LOGS, 'execucao_*.log', 30)
     if args.abrir:
@@ -266,6 +301,7 @@ def executar(args):
             try:
                 return rodada(args, cfg, buscas)
             except Exception as e:
+                limpar_pedido_parada()
                 log.error('Falha inesperada:\n%s', traceback.format_exc())
                 progresso.fim('erro', msg=f'Falha inesperada: {str(e).splitlines()[0][:200]}')
                 return 1

@@ -28,6 +28,7 @@ class Navegador:
         self.calmo = False      # consultar devagar desde o início (site usado há pouco ou que pediu pausa)
         self.pode_pedir_ajuda = False  # rodada iniciada pelo painel: há alguém para resolver uma verificação
         self.ritmo = self._ritmo_zerado()
+        self.deve_parar = lambda: False  # a pessoa pediu "Parar e gerar relatório"
 
     # ------------------------------------------------------------------ ciclo de vida
     def _abrir(self, user_agent=None):
@@ -68,6 +69,7 @@ class Navegador:
         # as páginas avisam o andamento (página lida, descrições...) por esta função
         try:
             self.ctx.expose_function('__bcProgresso', lambda msg: progresso.detalhe(msg))
+            self.ctx.expose_function('__bcParar', lambda: bool(self.deve_parar()))
         except Exception as e:
             log.info('Sem andamento detalhado das páginas: %s', str(e).splitlines()[0])
         self.page = self.ctx.pages[0] if self.ctx.pages else self.ctx.new_page()

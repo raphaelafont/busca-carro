@@ -1,6 +1,6 @@
 # Busca Carro
 
-Procura um carro usado na Webmotors, na OLX e no Mercado Livre, compara cada anúncio com a tabela FIPE e
+Procura um carro usado na Webmotors, na OLX, no Mercado Livre, no Seminovos BH e no NaPista, compara cada anúncio com a tabela FIPE e
 gera um relatório com filtros e ordenação. Roda no Windows de cada pessoa, sozinho a cada 2 dias ou quando
 ela mandar pelo painel.
 

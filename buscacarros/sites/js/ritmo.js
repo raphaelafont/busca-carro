@@ -15,6 +15,7 @@
     limitacoes: 0,
     paradoMs: 0,
     desistiu: false,
+    parar: false, // a pessoa pediu para parar e gerar o relatório com o que já foi lido
     orcamentoMs: (cfg.orcamentoS || 300) * 1000,
   };
   const R = {
@@ -22,13 +23,21 @@
     sleep,
     avisar,
     get calmo() { return st.calmo; },
-    get desistiu() { return st.desistiu; },
+    get desistiu() { return st.desistiu || st.parar; },
+    get parou() { return st.parar; },
     workers() { return st.calmo ? 1 : 2; },
     intervalo() { return st.calmo ? 1800 + Math.random() * 1700 : 800 + Math.random() * 700; },
     entrePaginas() { return st.calmo ? 2500 + Math.random() * 2000 : 1100 + Math.random() * 900; },
     async esperarVez() {
       let falta;
-      while ((falta = st.pausaAte - Date.now()) > 0) await sleep(falta);
+      while ((falta = st.pausaAte - Date.now()) > 0 && !st.parar) {
+        await sleep(Math.min(falta, 2000));
+        await R.checarParada();
+      }
+    },
+    async checarParada() {
+      try { if (!st.parar && window.__bcParar && await window.__bcParar()) { st.parar = true; avisar('Parada pedida: terminando com o que já foi lido'); } } catch (e) { /* sem painel */ }
+      return st.parar;
     },
     limitou(retryAfter) {
       const agora = Date.now();
@@ -53,9 +62,9 @@
     async pedir(url, opcoes, tentativas) {
       tentativas = tentativas || 4;
       for (let t = 0; t < tentativas; t++) {
-        if (st.desistiu) break;
+        if (st.desistiu || await R.checarParada()) break;
         await R.esperarVez();
-        if (st.desistiu) break;
+        if (st.desistiu || st.parar) break;
         const r = await fetch(url, Object.assign({ credentials: 'include' }, opcoes || {}));
         if (r.status === 429 || r.status === 403) {
           R.limitou(r.headers.get('Retry-After'));
@@ -66,7 +75,7 @@
       throw new Error('LIMITE');
     },
     resumo() {
-      return { limitacoes: st.limitacoes, parado_s: Math.round(st.paradoMs / 1000), desistiu: st.desistiu, calmo: st.calmo };
+      return { limitacoes: st.limitacoes, parado_s: Math.round(st.paradoMs / 1000), desistiu: st.desistiu, calmo: st.calmo, parou: st.parar };
     },
   };
   return R;

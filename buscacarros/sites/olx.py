@@ -27,6 +27,10 @@ def montar_caminho(busca):
         p.append(('pe', busca['preco_max']))
     if busca['km_max']:
         p.append(('me', busca['km_max']))
+    if busca.get('vendedor') == 'particular':
+        p.append(('f', 'p'))
+    elif busca.get('vendedor') == 'loja':
+        p.append(('f', 'c'))
     return marca, sufixo, ('?' + '&'.join(f'{k}={v}' for k, v in p) if p else '')
 
 

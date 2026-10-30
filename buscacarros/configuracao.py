@@ -78,7 +78,7 @@ def ler_config(caminho=None):
             'paginas': inteiro(g('limites', 'max_paginas_por_site', '15')) or 15,
             'anuncios': inteiro(g('limites', 'max_anuncios_por_site', '300')) or 300,
         },
-        'sites': {k: b('sites', k, True) for k in ('webmotors', 'olx', 'mercadolivre', 'icarros')},
+        'sites': {k: b('sites', k, True) for k in ('webmotors', 'olx', 'mercadolivre', 'seminovos', 'napista', 'icarros')},
         'fipe': {'token': g('fipe', 'token')},
         'alertas': {'abaixo_fipe_pct': -(abs(float(g('alertas', 'alertar_abaixo_da_fipe_pct', '25') or 25)))},
     }
@@ -122,7 +122,39 @@ def _remover_secao_email(caminho):
 
 # --------------------------------------------------------------------------- lista de buscas
 CAMPOS = ('marca', 'modelo', 'versao', 'ano_de', 'ano_ate', 'km_max', 'uf', 'cidade', 'preco_max',
-          'cambio', 'combustivel', 'blindado')
+          'cambio', 'combustivel', 'blindado', 'vendedor', 'sites')
+
+# sites que a pessoa pode escolher no painel (o iCarros fica só no config.ini: está sem busca de anúncios)
+SITES_ESCOLHA = {'webmotors': 'Webmotors', 'olx': 'OLX', 'mercadolivre': 'Mercado Livre',
+                 'seminovos': 'Seminovos BH', 'napista': 'NaPista'}
+
+
+def sites_escolhidos(valor):
+    """Lista de chaves de SITES_ESCOLHA, ou None quando são todos."""
+    if valor is None or valor == '':
+        return None
+    if isinstance(valor, str):
+        valor = [v.strip() for v in valor.split(',')]
+    escolha = [k for k in SITES_ESCOLHA if k in set(valor)]
+    if not escolha:
+        raise ErroConfig('Escolha pelo menos um site para buscar.')
+    return None if len(escolha) == len(SITES_ESCOLHA) else escolha
+
+
+def busca_no_site(busca, chave):
+    """Se o site entra na busca deste carro. Com uma escolha de sites, só eles (o iCarros, que só confere se a
+    busca dele voltou, fica de fora); sem escolha, todos, conforme o config.ini."""
+    return not busca.get('sites') or chave in busca['sites']
+
+
+def tipo_vendedor(valor):
+    """'particular', 'loja' ou None (qualquer)."""
+    v = norm(valor)
+    if v in ('particular', 'particulares', 'pf', 'pessoa fisica'):
+        return 'particular'
+    if v in ('loja', 'lojas', 'lojista', 'lojistas', 'revenda', 'revendas', 'pj'):
+        return 'loja'
+    return None
 
 
 
@@ -160,6 +192,8 @@ def normalizar_busca(dados):
         'cambio': tipo_cambio(dados.get('cambio')) if norm(dados.get('cambio')) not in ('', 'qualquer') else None,
         'combustivel': tipo_combustivel(dados.get('combustivel')) if norm(dados.get('combustivel')) not in ('', 'qualquer') else None,
         'blindado': dados.get('blindado') if isinstance(dados.get('blindado'), bool) else sim_nao(dados.get('blindado')),
+        'vendedor': tipo_vendedor(dados.get('vendedor')),
+        'sites': sites_escolhidos(dados.get('sites')),
     }
     for k in ('ano_de', 'ano_ate'):
         if b[k] and not 1950 <= b[k] <= datetime.now().year + 2:
@@ -283,12 +317,18 @@ def detalhes(b):
         partes.append('só blindados')
     elif b['blindado'] is False:
         partes.append('sem blindagem')
+    if b.get('vendedor') == 'particular':
+        partes.append('só particulares')
+    elif b.get('vendedor') == 'loja':
+        partes.append('só lojas')
     if b['km_max']:
         partes.append(f"até {b['km_max']:,} km".replace(',', '.'))
     if b['preco_max']:
         partes.append(f"até R$ {b['preco_max']:,}".replace(',', '.'))
     local = (f"{b['cidade']}/{b['uf']}" if b['cidade'] else (UFS.get(b['uf']) if b['uf'] else 'Brasil inteiro'))
     partes.append(local)
+    if b.get('sites'):
+        partes.append('só em ' + ', '.join(SITES_ESCOLHA[k] for k in b['sites'] if k in SITES_ESCOLHA))
     return ', '.join(partes)
 
 
